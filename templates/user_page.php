@@ -9,6 +9,9 @@
     {
         echo "<h2>".Lang::tr('admin_page')."</h2>\n";
         echo " <p>".Lang::tr('profile_page_text_linking_to_admin_page')."</p>\n";
+
+        echo " <br>";
+        echo "<a href=/?s=aggregate_statistics>".Lang::tr('aggregate_statistics_page')."</a>";
     }
 
     if(Config::get('using_local_saml_dbauth'))
