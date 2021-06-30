@@ -9,43 +9,53 @@ $maybe_display_aggregate_statistics_menu = false;
 
 
 
-<div id="menu">
+<div id="menu" class="container">
     <div class="leftmenu">
         <ul>
             <?php
-            
+
             if(!Auth::isGuest()) {
                 pagemenuitem('upload');
-                
+
                 pagemenuitem('guests');
-                
+
                 pagemenuitem('transfers');
-                
+
                 if(Config::get('user_page'))
                     pagemenuitem('user');
-                
-                pagemenuitem('statistics');
-                
-                pagemenuitem('admin');
 
-                if( $maybe_display_aggregate_statistics_menu ) {
-                    if (AggregateStatistic::enabled()) {
-                        pagemenuitem('aggregate_statistics');
-                    }
-                }
-                    
             }
-            
+
             ?>
         </ul>
     </div>
-    
+
     <div class="rightmenu">
         <ul>
+
         <?php
+
+            if(Config::get('lang_selector_enabled') && (count(Lang::getAvailableLanguages()) > 1)) {
+
+                $page = GUI::currentPage();
+                $url = '?s='.$page.'&lang=';
+
+                $code = Lang::getCode();
+                foreach(Lang::getAvailableLanguages() as $id => $dfn) {
+
+                    if($id == $code) {
+                        echo '<li><a href="'.$url.$id.'" class="current">'.Utilities::sanitizeOutput($dfn['name']).'</a></li>';
+                    } else {
+                        echo '<li><a href="'.$url.$id.'">'.Utilities::sanitizeOutput($dfn['name']).'</a></li>';
+                    }
+
+                }
+
+            }
+
+
             pagemenuitem('help');
             pagemenuitem('about');
-            pagemenuitem('privacy');
 
             if (Auth::isAuthenticated() && Auth::isSP()) {
                 $url = AuthSP::logoffURL();
@@ -60,9 +70,8 @@ $maybe_display_aggregate_statistics_menu = false;
             }
         ?>
         </ul>
-            
+
     </div>
 
-    
-</div>
 
+</div>
