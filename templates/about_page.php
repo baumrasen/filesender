@@ -4,7 +4,7 @@
 
 <div class="box">
 
-    <div id="text-about" title="About">
+    <div id="dialog-about" title="About">
         {tr:about_text}
     </div>
 

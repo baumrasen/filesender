@@ -1,6 +1,6 @@
 <div class="box">
 
-    <div id="text-help" title="Help">
+    <div id="dialog-help" title="Help">
         {tr:help_text}
     </div>
     
