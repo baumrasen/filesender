@@ -37,8 +37,6 @@
 
         <script type="text/javascript" src="{path:rest.php/lang?callback=lang.setTranslations}"></script>
 
-        <link href="https://fonts.googleapis.com/css?family=BenchNine" rel="stylesheet">
-
         <meta name="robots" content="noindex, nofollow" />
 
         <meta name="auth" content="noindex, nofollow" />
