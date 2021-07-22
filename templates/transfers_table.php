@@ -206,10 +206,12 @@ if (!function_exists('clickableHeader')) {
             </td>
             
             <td class="transfer_id">
-                <?php echo $transfer->id ?>
-                    <?php if($transfer->getOption(TransferOptions::ENCRYPTION)) { ?>
-                        <span class='right'> &#128273;</span>
-                    <?php } ?>
+                <?php
+                    echo $transfer->id;
+                    if( $transfer->is_encrypted ) {
+                        echo '&nbsp;<span class="fa fa-lock" title="{tr:file_encryption}"></span>';
+                    }
+                ?>
             </td>
             
             <?php if($show_guest) { ?>
@@ -275,11 +277,12 @@ if (!function_exists('clickableHeader')) {
                     <span data-action="delete" class="fa fa-lg fa-trash-o" title="{tr:delete}"></span>
                     <?php if($extend) { ?><span data-action="extend" class="fa fa-lg fa-calendar-plus-o"></span><?php } ?>
                     <span data-action="add_recipient" class="fa fa-lg fa-envelope-o" title="{tr:add_recipient}"></span>
-
-
+                </div>
+                <div id="marg3">
                     <span data-action="remind" class="fa fa-lg fa-repeat" title="{tr:send_reminder}"></span>
                     <?php if($audit)           { ?><span data-action="auditlog"      class="fa fa-lg fa-history" title="{tr:open_auditlog}"></span><?php } ?>
                     <?php if($showAdminExtend) { ?><span data-action="extendexpires" class="fa fa-lg fa-clock-o adminaction" title="{tr:extend_expires}"></span><?php } ?>
+                </div>
             </td>
         </tr>
         
@@ -316,11 +319,13 @@ if (!function_exists('clickableHeader')) {
                     <tbody>
                         <tr>
                             <td class="desc">{tr:transfer_id}</td>
-                            <td><?php echo $transfer->id ?>
-                            <?php if($transfer->getOption(TransferOptions::ENCRYPTION)) { ?>
-                                <span class='right'> &#128273;</span>
-                            <?php } ?>
-                        </td>
+                            <td><?php
+                                echo $transfer->id;
+                                if( $transfer->is_encrypted ) {
+                                    echo '&nbsp;<span class="fa fa-lock" title="{tr:file_encryption}"></span>';
+                                }
+                                ?>
+                            </td>
                         </tr>
                         <tr>
                             <td class="desc">{tr:created}</td>
