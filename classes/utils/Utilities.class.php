@@ -437,6 +437,10 @@ class Utilities
     {
         return $v == '1' || $v == 'true';
     }
+    public static function isFalse($v)
+    {
+        return !self::isTrue($v);
+    }
     public static function boolToString($v)
     {
         if( $v == '1' || $v == 'true' ) {
@@ -708,4 +712,34 @@ class Utilities
             return $min;
         return $v;
     }
+
+
+    /**
+     * Ensure that $v passes the regex from $config_key_for_regex 
+     * or throw the $excep exception
+     *
+     */
+    public static function valuePassesConfigRegexOrThrow( $v, $config_key_for_regex, $excep )
+    {
+        $r = Config::get($config_key_for_regex);
+        if ($r != '' && preg_match('`'.$r.'`', $v) === 0) {
+            throw new $excep($v);
+        }
+        return $v;
+    }
+
+    /**
+     * Ensure that $v passes the regex from $config_key_for_regex or return $def.
+     * If things go well return $v. 
+     *
+     */
+    public static function valuePassesConfigRegexOrDefault( $v, $config_key_for_regex, $def )
+    {
+        $r = Config::get($config_key_for_regex);
+        if ($r != '' && preg_match('`'.$r.'`', $v) === 0) {
+            return $def;
+        }
+        return $v;
+    }
+
 }
