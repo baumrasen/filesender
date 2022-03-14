@@ -1,7 +1,7 @@
 <div id="site-name" class="text-right">
 <div class="container">
         <div class="col_content">
-                ibb Konstruktionsdienstleistungs GmbH
+                ibb house of engineering GmbH
         </div>
 </div>
 </div>
