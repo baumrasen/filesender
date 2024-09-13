@@ -164,6 +164,28 @@ class Config
             self::merge(self::$parameters, $config);
         }
 
+        // Load config regex overrides if used and present
+        // if not authenticated then do not throw, just do not load these files
+        $auth_config_regex_files = self::get('auth_config_regex_files');
+        if( !empty($auth_config_regex_files) && is_array($auth_config_regex_files) && Auth::isAuthenticated(false)) {
+                $auth_attrs = Auth::attributes();
+                foreach ($auth_config_regex_files as $attr=>$regex_and_configs) {
+                        if (!is_array($regex_and_configs)) {
+                                continue;
+                        }
+                        foreach ($regex_and_configs as $regex => $extra_config_name) {
+                                if (preg_match('`'.$regex.'`', $auth_attrs[$attr])) {
+                                        $extra_config_file = FILESENDER_BASE.'/config/config-' . $extra_config_name . '.php';
+                                        if (file_exists($extra_config_file)) {
+                                                $config = array();
+                                                include_once($extra_config_file);
+                                                self::merge(self::$parameters, $config);
+                                        }
+                                }
+                        }
+                }
+        }
+
         // ensure mandatory config settings file exists
         $mandatory_config_file = FILESENDER_BASE.'/includes/ConfigMandatorySettings.php';
         if (!file_exists($mandatory_config_file)) {
@@ -222,7 +244,7 @@ class Config
         }
 
         // see the error message for info
-        if (Utilities::startsWith(Config::get('storage_type'), 'Cloud')) {
+        if (Utilities::startsWith(strtolower(Config::get('storage_type')), 'cloud')) {
             if (self::get('upload_chunk_size') != self::get('download_chunk_size')) {
                 throw new ConfigBadParameterException('When storing files using the Cloud storage the upload_chunk_size must be the same as download_chunk_size');
             }
@@ -354,6 +376,20 @@ class Config
             self::$parameters['crypto_crypt_name'] = "AES-CBC";
         }
 
+        self::$parameters['download_verification_code_valid_duration_minutes'] = floor(self::$parameters['download_verification_code_valid_duration'] / 60);
+
+        $k = 'storage_filesystem_per_day_min_days_to_clean_empty_directories';
+        if( -1 == self::$parameters[$k] ) {
+            self::$parameters[$k] = self::$parameters['max_transfer_days_valid'];
+            $kmax = 'storage_filesystem_per_day_max_days_to_clean_empty_directories';
+            if( self::$parameters[$kmax] < self::$parameters[$k] ) {
+                self::$parameters[$kmax] = self::$parameters[$k] + 30;
+            }
+        }
+
+        if( Config::get("storage_filesystem_per_day_max_days_to_clean_empty_directories") < Config::get("storage_filesystem_per_day_min_days_to_clean_empty_directories")) {
+            throw new ConfigBadParameterException("storage_filesystem_per_day_max_days_to_clean_empty_directories must be larger than storage_filesystem_per_day_min_days_to_clean_empty_directories");
+        }
         
         // verify classes are happy
         Guest::validateConfig();
@@ -467,7 +503,7 @@ class Config
             foreach (array_keys(self::$parameters) as $key) {
                 if (substr($key, 0, strlen($search)) == $search) {
                     $args[0] = $key;
-                    $set[substr($key, strlen($search))] = call_user_func_array(get_class().'::get', $args);
+                    $set[substr($key, strlen($search))] = call_user_func_array(static::class.'::get', $args);
                 }
             }
             return $set;
@@ -527,7 +563,7 @@ class Config
      */
     public static function getBaseValue($key)
     {
-        $value = call_user_func_array(get_class().'::get', func_get_args());
+        $value = call_user_func_array(static::class.'::get', func_get_args());
         
         if (
             is_array(self::$override) &&

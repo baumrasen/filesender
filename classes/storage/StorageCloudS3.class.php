@@ -53,17 +53,18 @@ class StorageCloudS3 extends StorageFilesystem
         if (self::$client) {
             return self::$client;
         }
-        
+
         self::$client = S3Client::factory(array(
             'region'   => Config::get('cloud_s3_region'),
             'version'  => Config::get('cloud_s3_version'),
             'endpoint' => Config::get('cloud_s3_endpoint'),
             'use_path_style_endpoint' => Config::get('cloud_s3_use_path_style_endpoint'),
             'credentials' => array(
-                'key'    => Config::get('cloud_s3_key'),
-                'secret' => Config::get('cloud_s3_secret'),
+                'key'    => ConfigPrivate::get('cloud_s3_key'),
+                'secret' => ConfigPrivate::get('cloud_s3_secret'),
             )
         ));
+        
         return self::$client;
     }
     
@@ -142,6 +143,10 @@ class StorageCloudS3 extends StorageFilesystem
         } catch (ServiceException $e) {
             $msg = 'S3: readChunk() Can not read to object_name: ' . $object_name . ' offset ' . $offset;
             Logger::info($msg);
+            if (is_a($e, 'ConfigMissingParameterException')) {
+                Logger::error("NOTE: MISSING PARAMETER IN CONFIG FILE");
+                $msg .= "  NOTE: MISSING PARAMETER IN CONFIG FILE";
+            }
             throw new StorageFilesystemCannotReadException($msg);
         }
 
@@ -184,11 +189,15 @@ class StorageCloudS3 extends StorageFilesystem
             
             return array(
                 'offset' => $offset,
-                'written' => $written
+                'written' => $chunk_size
             );
         } catch (Exception $e) {
             $msg = 'S3: writeChunk() Can not write to object_name: ' . $object_name . ' offset ' . $offset;
             Logger::info($msg);
+            if (is_a($e, 'ConfigMissingParameterException')) {
+                Logger::error("NOTE: MISSING PARAMETER IN CONFIG FILE");
+                $msg .= "  NOTE: MISSING PARAMETER IN CONFIG FILE";
+            }
             throw new StorageFilesystemCannotWriteException($msg);
         }
     }
@@ -215,19 +224,61 @@ class StorageCloudS3 extends StorageFilesystem
     {
         $file_path = self::buildPath($file).$file->uid;
 
+        $offset = 0;
         $bucket_name = self::getBucketName( $file );
         $object_name = self::getObjectName( $file, $offset );
+	$bulk_delete = Config::get('cloud_s3_bulk_delete');
+	$bulk_size = Config::get('cloud_s3_bulk_size');
+
+	Logger::debug('CloudS3 deleteFile(), file_path: ' . $file_path . ' bucket_name: ' . $bucket_name . ' object_name: ' . $object_name . ' bulk: ' . $bulk_delete . '/' . $bulk_size);
         
         try {
             $client = self::getClient();
 
-            $objects = $client->getIterator('ListObjects', array('Bucket' => $bucket_name));
+            if( !self::usingCustomBucketName( $file ) ) {
+                $objects = $client->getIterator('ListObjects', array('Bucket' => $bucket_name));
+            } else {
+                $objects = $client->getIterator('ListObjects', array('Bucket' => $bucket_name, 'Prefix' => $file->uid));    
+            }
 
-            foreach ($objects as $object) {
-                $result = $client->deleteObject(array(
-                    'Bucket' => $bucket_name,
-                    'Key'    => $object['Key']
-                ));
+	    if( $bulk_delete ) {
+
+	        // Build bulk request the way AWS client wants it
+                foreach ($objects as $object) {
+                    $delete_queue[] = [
+                        'Key' => $object['Key'],
+                    ];
+                }
+
+		if( $delete_queue ) {
+
+		    // Create batches of requested batchsize
+                    $chunked_queue = array_chunk($delete_queue, $bulk_size);
+                    Logger::debug('bulk has ' . count($chunked_queue) . ' requests');
+
+
+                    // Perform actual chunk removal
+                    foreach($chunked_queue as $delete_batch) {
+
+                        Logger::debug('bulk deleting ' . count($delete_batch) . ' chunks');
+                        $result = $client->deleteObjects([
+                           'Bucket' => $bucket_name,
+                           'Delete' => [
+                               'Objects' => $delete_batch,
+                           ],
+                        ]);
+                    }
+		}
+
+            } else {
+
+		Logger::debug('Executing non-bulk delete');
+                foreach ($objects as $object) {
+                    $result = $client->deleteObject(array(
+                        'Bucket' => $bucket_name,
+                        'Key'    => $object['Key']
+                    ));
+                }
             }
             
             if( !self::usingCustomBucketName( $file ) ) {
@@ -236,8 +287,17 @@ class StorageCloudS3 extends StorageFilesystem
                 ));
             }
         } catch (Exception $e) {
-            Logger::info('deleteFile() error ' . $e);
-            throw new StorageFilesystemCannotDeleteException($file_path, $file);
+            if (preg_match('/NoSuchBucket/', $e)) {
+                // S3 backend has returned a NoSuchBucket error, this happens when we have already
+                // deleted this file (when using per-file buckets) or the daily bucket was empty and has
+                // already been deleted (when using daily buckets).
+                // 
+                // Usually this happens when Transfer was deleted when it expired and cron.php re-deletes
+                // all files when it's purging the transfer from database.
+            } else {
+                Logger::info('deleteFile() error ' . $e);
+                throw new StorageFilesystemCannotDeleteException($file_path, $file);
+            }
         }
     }
 
@@ -266,5 +326,147 @@ class StorageCloudS3 extends StorageFilesystem
         $fp = fopen($path, "r+");
         stream_set_chunk_size($fp, Config::get('upload_chunk_size'));
         return $fp;
+    }
+
+
+
+    /**
+     * Bucket maintenance operations for when using Daily Buckets
+     * 
+     * Intended to be called from cron.php as a part of regular daily maintenance
+     * 
+     * Can also be called via scripts/task/S3bucketmaintenance.php (for example
+     * when taking Daily Buckets into use and new buckets need to be created asap)
+     * 
+     * Lists current buckets in S3 storage
+     * Creates new daily buckets for today + 14 days (if they don't already exist)
+     * Removes old daily buckets (if they are empty)
+     * 
+     * @param bool $verbose
+     * 
+     * @return bool
+     * 
+     * @throws Exception
+     */
+    public static function dailyBucketMaintenance($verbose = false)
+    {
+
+        if (!Config::get('cloud_s3_use_daily_bucket')) {
+            throw new Exception('Function StorageCloudS3::dailyBucketMaintenance was called but configuration option cloud_s3_use_daily_bucket is not set to true!');
+            return fail;
+        }
+
+        // Array of New Buckets (should be created if they don't exist)
+        $newbuckets = array();
+
+	// Array of Old Buckets (should be checked for contents)
+        $oldbuckets = array();
+
+
+        $bucketprefix = "";
+        if (Config::get('cloud_s3_bucket_prefix')) {
+            $bucketprefix = Config::get('cloud_s3_bucket_prefix');
+        }
+
+
+        // Initialize array of new buckets with today + 14 next days
+        // If these buckets are found in the scan, they will be removed from this array
+        // After scan, all buckets still remaining in array will be created
+        $timestamp = time();
+        for ($i = 0; $i <= 14; $i++) {
+            $newbuckets["" . $bucketprefix . date("Y-m-d", $timestamp)] = 1;
+            $timestamp += 60*60*24;
+        }
+
+
+        $client = self::getClient();
+
+        // Fetch list of all S3 buckets we can see
+        $result = $client->getIterator('ListBuckets', array());
+
+        $name = "";
+        $bucket = "";
+
+        foreach ($result as $bucket) {
+
+            $name = $bucket["Name"];
+
+            if ($verbose) echo "Saw Bucket in S3: $name";
+            if (preg_match('/^' . preg_quote($bucketprefix, '/') . '\d\d\d\d-\d\d-\d\d$/', $name)) {
+                // Matches our prefix + date -> should be filesender's bucket
+                if (isset($newbuckets[$name])) {
+                    unset($newbuckets[$name]);
+                    if ($verbose) echo " (future bucket)";
+                } else {
+                    $oldbuckets[$name] = 1;
+                }
+            } else {
+                if ($verbose) echo " (not ours)";
+            }
+
+            if ($verbose) echo "\n";
+
+        }
+
+        foreach (array_keys($newbuckets) as $name) {
+
+            if ($verbose) echo "Creating new bucket: $name\n";
+            $client->createBucket(array(
+                'Bucket' => $name,
+            ));
+
+        }
+
+        foreach (array_keys($oldbuckets) as $name) {
+
+            $result = $client->ListObjectsV2(array(
+                'Bucket' => $name,
+                'MaxKeys' => 2
+            ));
+
+            if ($verbose) echo "Checked old bucket " . $result["Name"] . ", it has " . $result["KeyCount"] . " objects.";
+
+            // If the bucket name matches what we asked for (= no error on request)
+            // and it has 0 objects, it should be safe to delete..
+            if ($result["Name"] == $name && $result["KeyCount"] == 0) {
+                if ($verbose) echo " (will remove)";
+                $client->deleteBucket(array(
+                    'Bucket' => $name,
+                ));
+            }
+            if ($verbose) echo "\n";
+
+        }
+
+        return true;
+    }
+
+    /**
+     * Add custom bucket name info to transfer options
+     * 
+     * @param array $options
+     * 
+     * @return array new options
+     * 
+     */
+    public static function augmentTransferOptions( $options )
+    {
+        if( strtolower(Config::get('storage_type')) == 'clouds3' ) {
+            if (Config::get('cloud_s3_use_daily_bucket')) {
+                $options[TransferOptions::STORAGE_CLOUD_S3_BUCKET] = "";
+                $v = Config::get('cloud_s3_bucket_prefix');
+                if( $v && $v != '' ) {
+                    $options[TransferOptions::STORAGE_CLOUD_S3_BUCKET] = $v;
+                }
+                $options[TransferOptions::STORAGE_CLOUD_S3_BUCKET] .= date("Y-m-d");
+            } else {
+                $v = Config::get('cloud_s3_bucket');
+                if( $v && $v != '' ) {
+                    $options[TransferOptions::STORAGE_CLOUD_S3_BUCKET] = $v;
+                }
+            }
+        }
+
+        return $options;
     }
 }

@@ -349,10 +349,10 @@ if (!function_exists('clickableHeader')) {
                         <?php if( !$transfer->get_a_link ) { ?>
                             <tr>
                                 <td class="desc">{tr:subject}</td>
-                                <td><?php echo $transfer->subject ?></td>
+                                <td><?php echo Template::replaceTainted($transfer->subject) ?></td>
                             </tr><tr>
                                 <td class="desc">{tr:message}</td>
-                                <td><?php echo $transfer->message ?></td>
+                                <td><?php echo Template::replaceTainted($transfer->message) ?></td>
                             </tr>
                         <?php } ?>
 
@@ -367,20 +367,31 @@ if (!function_exists('clickableHeader')) {
                         <tr class="transfer_options">
                             <td class="desc">{tr:options}</td>
                             <td><div class="options">
-                                <?php if(count($transfer->options)) { ?>
+<?php
+			$optionshtml = "";
+                        if(count(array_filter($transfer->options))) {
+                            foreach (array_keys(array_filter($transfer->options)) as $o) {
+                                if ($o == TransferOptions::STORAGE_CLOUD_S3_BUCKET) {
+                                    // this option will never be shown to the user
+                                } else {
+                                    $optionshtml .= "<li>";
+                                    if( $o == TransferOptions::EMAIL_DAILY_STATISTICS ) {
+                                        $optionshtml .= Lang::tr($o) . '&nbsp;'
+                                                     . '<span data-action="remove" data-option="'
+                                                     . TransferOptions::EMAIL_DAILY_STATISTICS
+                                                     . '" class="fa fa-lg fa-times" title="{tr:remove_option}"></span>'
+                                                     ;
+                                    } else {
+                                        $optionshtml .= Lang::tr($o);
+                                    }
+                                    $optionshtml .= "</li>";
+                                }
+                            }
+                        }
+                    
+                        if($optionshtml != '') { ?>
                                     <ul class="options">
-                                        <li>
-                                            <?php echo implode('</li><li>', array_map(function($o) {
-                                                if( $o == TransferOptions::EMAIL_DAILY_STATISTICS ) {
-                                                    return Lang::tr($o) . '&nbsp;'
-                                                    . '<span data-action="remove" data-option="' 
-                                                               . TransferOptions::EMAIL_DAILY_STATISTICS 
-                                                               . '" class="fa fa-lg fa-times" title="{tr:remove_option}"></span>'
-                                                    ;
-                                                }
-                                                return Lang::tr($o);
-                                            }, array_keys(array_filter($transfer->options)))) ?>
-                                        </li>
+                                        <?php echo $optionshtml; ?>
                                     </ul>
                                 <?php } else echo Lang::tr('none') ?>
                             </div>
@@ -392,7 +403,7 @@ if (!function_exists('clickableHeader')) {
                                 <td><a class="download_href" href="<?php echo $transfer->first_recipient->download_link ?>">{tr:download_link}</a></td>
                                 <td><input readonly="readonly" type="text" value="<?php echo $transfer->first_recipient->download_link ?>" /></td>
                             </tr>
-                        <?php } ?>
+                        <?php } ?>                        
                        </tbody>
                     </table>
                 
@@ -479,12 +490,24 @@ if (!function_exists('clickableHeader')) {
                             <a class="fa fa-lg fa-download" title="{tr:download}" href="download.php?files_ids=<?php echo $file->id ?>"></a>
                                 <?php } ?>
                             <?php } ?>
-                            
+
                             <span data-action="delete" class="fa fa-lg fa-trash-o" title="{tr:delete}"></span>
                             
                             <?php if($audit) { ?>
                             <span data-action="auditlog" class="fa fa-lg fa-history" title="{tr:open_file_auditlog}"></span>
                             <?php } ?>
+
+                            <?php
+                            if( Config::get('transfers_table_show_admin_full_path_to_each_file')) {
+                                if (Auth::isAuthenticated()) {
+                                    if (Auth::isAdmin()) {
+                                        $fp = StorageFilesystem::buildPath( $file ).StorageFilesystem::buildFilename( $file );
+                                        echo "<br/>";
+                                        echo Template::sanitizeOutput( $fp );
+                                    }
+                                }
+                            }
+                            ?>
                         </div>
                     <?php } ?>
                 </div>

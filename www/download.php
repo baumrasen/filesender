@@ -70,6 +70,33 @@ try {
         
         // Getting associated transfer 
         $transfer = $recipient->transfer;
+
+        // $recipient
+        if( Utilities::isTrue(Config::get('download_verification_code_enabled'))) {
+            $otp = DownloadOneTimePassword::mostRecentForDownload( $transfer, $recipient );
+            if( !$otp->verified) {
+                throw new RestDataStaleException('transfer = '.$transfer->id);
+            }
+        }
+    
+        if( Config::get('log_authenticated_user_download_by_ensure_user_as_recipient')) {
+            if( Auth::isRegularUser()) {
+                $user = Auth::user();
+                $email = $user->saml_user_identification_uid;
+                $found = false;
+                foreach($transfer->recipients as $r) {
+                    if( $r->email == $email ) {
+                        $recipient = $r;
+                        $found = true;
+                        break;
+                    }
+                }
+                if( !$found ) {
+                    $recipient = $transfer->addRecipient($email);
+                }
+                $token = $recipient->token;
+            }
+        }
         
     } elseif(Auth::isAuthenticated()) {
         // Direct owner/admin download
@@ -88,6 +115,7 @@ try {
                 
     } else
         throw new TokenIsMissingException();
+
     
     // Are all files from the transfer ?
     $not_from_transfer = array();
@@ -104,11 +132,21 @@ try {
     // Close session to avoid simultaneous requests from being locked
     session_write_close();
     
+    // Ensure transaction id
+    $transaction_id = '';
+    if(array_key_exists('transaction_id', $_REQUEST))
+        $transaction_id = $_REQUEST['transaction_id'];
+
+    if(!$transaction_id || !Utilities::isValidUID($transaction_id)) {
+        $transaction_id = Utilities::generateUID();
+        header('Location: '.Utilities::http_build_query(array_merge($_REQUEST, ['transaction_id' => $transaction_id]), 'download.php?'));
+        exit;
+    }
+
+    $recently_downloaded = false;
     // Check if file set has already been downloaded over the last hour
     if( Config::get('logs_limit_messages_from_same_ip_address')) {
         $recently_downloaded = $recipient ? AuditLog::clientRecentlyDownloaded($recipient, $files_ids) : false;
-    } else {
-        $recently_downloaded = false;
     }
 
     $archive_format_selected = false;
@@ -135,8 +173,9 @@ try {
         manageOptions($ret, $transfer, $recipient, $recently_downloaded);
     
 } catch (Exception $e) {
-    $storable = new StorableException($e);
-    $path = GUI::path() . '?s=exception&exception=' . $storable->serialize();
+    $sid = uniqid();
+    $_SESSION['exception_'.$sid] = $e;
+    $path = GUI::path() . '?s=exception&sid=' . $sid;
     header('Location: ' . $path);
 }
 
@@ -221,7 +260,7 @@ function downloadSingleFile($transfer, $recipient, $file_id, $recently_downloade
                             if ($end > 0) {
                                 $start = 0;
                             } else if ($end < 0) {
-                                $start = $file - size + $end;
+                                $start = $file->size + $end;
                                 $end = $file->size;
                             } else
                                 throw new DownloadInvalidRangeException($part); // end can't be O
@@ -396,8 +435,9 @@ function downloadSingleFile($transfer, $recipient, $file_id, $recently_downloade
     if($done) {
         Logger::info('User downloaded file or file ranges ('.$size.' bytes, '.(time() - $time).' seconds)');
         
-        if(!$recently_downloaded)
+        if(!$recently_downloaded) {
             Logger::logActivity(LogEventTypes::DOWNLOAD_ENDED, $file, $recipient);
+        }
     }
     
     return array('result' => $done, 'files' => array($file));
@@ -405,16 +445,73 @@ function downloadSingleFile($transfer, $recipient, $file_id, $recently_downloade
 
 
 function manageOptions($ret, $transfer, $recipient, $recently_downloaded = false) {
+
+    if( !empty($_SERVER['HTTP_X_FILESENDER_ENCRYPTED_ARCHIVE_DOWNLOAD']) && $_SERVER['HTTP_X_FILESENDER_ENCRYPTED_ARCHIVE_DOWNLOAD'] == 'true' ) {
+    
+        $archiveList = $_SERVER['HTTP_X_FILESENDER_ENCRYPTED_ARCHIVE_CONTENTS'];
+        if( $transfer && 
+            $transfer->is_encrypted &&
+            strlen($archiveList))
+        {
+            // user data MUST be list of numbers only
+            if (preg_match("/^[0-9,]+$/", $archiveList)) {        
+
+                $files = array();
+                $files_ids = array_filter(array_map('trim', explode(',', $archiveList)));
+                
+                foreach ($files_ids as $fileId) {
+                    $file = File::fromId($fileId);
+                    // no trying to sneak in files that are not in this transfer.
+                    if( $file->transfer_id != $transfer->id ) {
+                        Logger::nefarious("a fileid was supplied for a encrypted archive download that did not belong to the transfer");
+                        return;
+                    }
+                    $files[] = $file;
+                }
+                
+                $ret['files'] = $files;
+            } else {
+                Logger::nefarious("badly formed header HTTP_X_FILESENDER_ENCRYPTED_ARCHIVE_CONTENTS");
+            }
+        }
+        else
+        {
+            if( !$transfer || !$transfer->is_encrypted ) {
+                Logger::nefarious("attempt to set a ENCRYPTED_ARCHIVE_DOWNLOAD on a normal transfer");
+            }
+                
+            // not last file of encrypted archive.
+            return;
+        }
+    }
+
     if ($transfer->getOption(TransferOptions::ENABLE_RECIPIENT_EMAIL_DOWNLOAD_COMPLETE)) {
         if (array_key_exists('notify_upon_completion', $_REQUEST) && (bool) $_REQUEST['notify_upon_completion']) {
-            // Notify file download
-            ApplicationMail::quickSend('download_complete', $recipient, $ret);
+
+            try {
+                // do not email too often
+                TranslatableEmail::rateLimit( true, 'download_complete', $recipient, $transfer );
+
+                // Notify file download
+                ApplicationMail::quickSend('download_complete', $recipient, $ret);
+            }
+            catch ( RateLimitException $e ) {
+                // we hit a rate limit so do not email this time
+            }
+            
         }
     }
     
     // Only notify owner if client did not download the same set of files over the last
     // period to avoid multiple notifications in case of multiple resume from dumb downloader
     if ($transfer->getOption(TransferOptions::EMAIL_DOWNLOAD_COMPLETE) && !$recently_downloaded) {
-        ApplicationMail::quickSend('files_downloaded', $transfer->owner, $ret, array('recipient' => $recipient));
+        try {
+            // do not email too often
+            TranslatableEmail::rateLimit( true, 'files_downloaded', $transfer->owner, $transfer);
+            ApplicationMail::quickSend('files_downloaded', $transfer->owner, $ret, array('recipient' => $recipient));
+        }
+        catch ( RateLimitException $e ) {
+            // we hit a rate limit so do not email this time
+        }
     }
 }

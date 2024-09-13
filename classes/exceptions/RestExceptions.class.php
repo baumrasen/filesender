@@ -75,6 +75,46 @@ class RestException extends DetailedException
 }
 
 /**
+ * security token is invalid
+ */
+class RestInvalidSecurityTokenException extends RestException
+{
+    /**
+     * Constructor
+     *
+     * @param mixed $details details about what happened (for logging)
+     */
+    public function __construct($details = '')
+    {
+        parent::__construct(
+            'rest_security_token_did_not_match',
+            400,
+            $details
+        );
+    }
+}
+
+/**
+ * xsrf token is invalid
+ */
+class RestInvalidXSRFTokenException extends RestException
+{
+    /**
+     * Constructor
+     *
+     * @param mixed $details details about what happened (for logging)
+     */
+    public function __construct($details = '')
+    {
+        parent::__construct(
+            'rest_xsrf_token_did_not_match',
+            400,
+            $details
+        );
+    }
+}
+
+/**
  * REST authentication required
  */
 class RestAuthenticationRequiredException extends RestException
@@ -276,5 +316,22 @@ class RestUnknownPrincipalException extends RestException
     public function __construct()
     {
         parent::__construct('rest_unknown_principal', 404, array());
+    }
+}
+
+
+/**
+ * REST error if the data sent is too old
+ */
+class RestDataStaleException extends RestException
+{
+    /**
+     * Constructor
+     *
+     * @param string $name name of the missing parameter
+     */
+    public function __construct()
+    {
+        parent::__construct('rest_data_stale', 404, array());
     }
 }

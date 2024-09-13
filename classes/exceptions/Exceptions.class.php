@@ -67,16 +67,25 @@ class LoggingException extends Exception
         if ($log && (!is_array($log) || !preg_match('`[a-z]`', key($log)))) {
             $log = array('exception' => $log);
         }
+
+        $exceptionClassName = get_class($this);
+        if (Utilities::configMatchInArray(
+            'exception_skip_logging',
+            $exceptionClassName
+        )) {
+            // skip logging this
+        } else {
         
-        // Log info
-        if ($log) {
-            foreach ($log as $category => $lines) {
-                if (!is_array($lines)) {
-                    $lines = array($lines);
-                }
-                
-                foreach ($lines as $line) {
-                    $this->log($category, $line);
+            // Log info
+            if ($log) {
+                foreach ($log as $category => $lines) {
+                    if (!is_array($lines)) {
+                        $lines = array($lines);
+                    }
+                    
+                    foreach ($lines as $line) {
+                        $this->log($category, $line);
+                    }
                 }
             }
         }
@@ -132,6 +141,7 @@ class DetailedException extends LoggingException
     /**
      * Public exception details
      */
+    private $uid = null;
     private $details = null;
     
     /**
@@ -351,6 +361,10 @@ class StorableException
     {
         $exception = (array)json_decode(base64_decode($serialized));
         
+        array_walk_recursive($exception, function(&$value) {
+            $value = preg_replace('`\{(tr:)*(cfg|conf|config):([^}]+)\}`', '', $value);
+        });
+
         if (!array_key_exists('message', $exception)) {
             throw new DetailedException('not_an_exception', $exception);
         }

@@ -224,6 +224,20 @@ class Logger
     }
 
     /**
+     * This is mostly for use only when developing. The msg is written and
+     * a pretty printed deep inspectiong of $v along with a 'AAA' key to
+     * find these entries using tail -f and grep.
+     */
+    public static function dump($msg,$v)
+    {
+        if( Utilities::isTrue(Config::get('debug'))) {
+            $d = json_encode($v, JSON_PRETTY_PRINT, 10 );
+            $d = preg_replace( '/(\n)/i', '${1} AAA ', $d );
+            Logger::error("AAA $msg " . $d );
+        }
+    }
+    
+    /**
      * Log terminating error. This does not return.
      *
      * @param string $message
@@ -233,6 +247,7 @@ class Logger
         self::log(LogLevels::ERROR, $message);
         exit('An error has occurred');
     }
+   
     /**
      * Log error
      *
@@ -263,6 +278,11 @@ class Logger
         self::log(LogLevels::WARN, $message);
     }
 
+    public static function nefarious($message)
+    {
+        self::log(LogLevels::WARN, "nefarious activity suspected: " . $message);
+    }
+    
     /**
      * Log info
      *
@@ -517,6 +537,14 @@ class Logger
         AuditLog::create($logEvent, $target, $author);
         StatLog::create($logEvent, $target);
         AggregateStatistic::create($logEvent, $target,$author);
+
+        if( $logEvent == LogEventTypes::DOWNLOAD_ENDED || $logEvent == LogEventTypes::ARCHIVE_DOWNLOAD_ENDED ) {
+            if ($target instanceof File) {
+                $transfer = $target->transfer;
+                $transfer->download_count++;
+                $transfer->save();
+            }
+        }
         
         self::info('Event#'.$logEvent.' on '.(string)$target.($author ? ' by '.(string)$author : ''));
     }

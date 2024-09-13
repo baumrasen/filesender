@@ -185,9 +185,12 @@ class RestEndpointGuest extends RestEndpoint
                                         'guest_create_limit_per_day',
                                         LogEventTypes::GUEST_CREATED_RATE, $user );
 
+        
         // Create new guest object
         $guest = Guest::create($data->recipient, $data->from);
 
+        // Check rate limit
+        TranslatableEmail::rateLimit( false, 'guest_created', $guest );
         
         // Set provided metadata
         if ($data->subject) {
@@ -246,6 +249,15 @@ class RestEndpointGuest extends RestEndpoint
             $transfer_options[TransferOptions::GET_A_LINK] = false;
         }
         
+        if( strtolower(Config::get('storage_type')) == 'clouds3' ) {
+            $transfer_options = StorageCloudS3::augmentTransferOptions( $transfer_options );
+        }
+
+        if(Auth::isRemote()) {
+            if (!array_key_exists(TransferOptions::ADD_ME_TO_RECIPIENTS, $transfer_options)) {
+                $transfer_options[TransferOptions::ADD_ME_TO_RECIPIENTS] = false;
+            }
+        }
         $guest->transfer_options = $transfer_options;
         
         // Set expiry date
@@ -264,7 +276,6 @@ class RestEndpointGuest extends RestEndpoint
         
         // Make guest available, this saves the object and send email to the guest
         $guest->makeAvailable();
-
         
         return array(
             'path' => '/guest/'.$guest->id,
@@ -320,7 +331,9 @@ class RestEndpointGuest extends RestEndpoint
         // Need to extend expiry date
         if ($data->extend_expiry_date) {
             if( !Auth::isAdmin()) {
-                throw new RestAdminRequiredException();
+                if( Config::get("allow_guest_expiry_date_extension") == 0 ) {
+                    throw new RestAdminRequiredException();
+                }
             }
             $guest->extendObjectExpiryDate();
             return self::cast($guest);
@@ -367,7 +380,7 @@ class RestEndpointGuest extends RestEndpoint
         if (!$guest->isOwner($user) && !Auth::isAdmin()) {
             throw new RestOwnershipRequiredException($user->id, 'guest = '.$guest->id);
         }
-        
+
         // Remove guest access rights
         $guest->close();
     }

@@ -76,6 +76,11 @@ class AuditLog extends DBObject
             'type' => 'string',
             'size' => 39,
         ),
+        'transaction_id' => array(
+            'type' => 'string',
+            'size' => 36,
+            'null' => true
+        ),
         'created' => array(
             'type' => 'datetime'
         )
@@ -89,6 +94,9 @@ class AuditLog extends DBObject
         'Author_ID' => array(
             'author_type' => array(),
             'author_id'   => array()
+        ),
+        'Transaction_ID' => array(
+            'transaction_id' => array()
         ),
         'Created' => array(
             'created' => array()
@@ -151,6 +159,7 @@ class AuditLog extends DBObject
     protected $author_id = null;
     protected $created = null;
     protected $ip = null;
+    protected $transaction_id = null;
     
     
     /**
@@ -176,6 +185,8 @@ class AuditLog extends DBObject
         // Fill properties from provided data
         if ($data) {
             $this->fillFromDBData($data);
+        } else {
+            $this->ip = Utilities::getClientIP();
         }
     }
     
@@ -207,6 +218,13 @@ class AuditLog extends DBObject
         $auditLog->target_id = $target->id;
         $auditLog->target_type = get_class($target);
         
+        if(array_key_exists('transaction_id', $_REQUEST)) {
+            $transaction_id = $_REQUEST['transaction_id'];
+            if(Utilities::isValidUID($transaction_id)) {
+                $auditLog->transaction_id = $transaction_id;
+            }
+        }
+
         if (!$author) {
             $author = Auth::user();
         }
@@ -226,6 +244,9 @@ class AuditLog extends DBObject
      */
     public function save()
     {
+        if (is_null($this->ip)) {
+            $this->ip = Utilities::getClientIP();
+        }
         $this->insertRecord($this->toDBData());
     }
     
@@ -279,7 +300,8 @@ class AuditLog extends DBObject
                     'upload_time' => 1,
                     'name' => 'unknown',
                     'size' => 1,
-                    'email' => 'unknown'
+                    'email' => 'unknown',
+                    'id' => -1
                 );
             }
         }
@@ -294,7 +316,8 @@ class AuditLog extends DBObject
             } catch (Exception $e) {
                 return (object)array(
                     'identity' => 'unknown',
-                    'email' => 'unknown'
+                    'email' => 'unknown',
+                    'id' => -1
                 );
             }
         }

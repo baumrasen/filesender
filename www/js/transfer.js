@@ -236,14 +236,18 @@ window.filesender.transfer = function() {
         return enable;
     }
 
+
+    
     this.getExtention = function(file) {
-        var fileSplit = file.name.split('.');
+        var fileSplit = file.name.replace(/^.+[\/\\]/, '').split('.');
         if (fileSplit.length>1) {
             return fileSplit.pop();
         }
         return '';
     };
 
+
+    
     this.getEncryptionMetadata = function( file ) {
         var key_version = this.encryption_key_version;
 	var ret = {
@@ -1195,7 +1199,7 @@ window.filesender.transfer = function() {
         if (this.size > filesender.config.max_transfer_size) {
             return errorhandler({message: 'transfer_maximum_size_exceeded', details: {size: file.size, max: filesender.config.max_transfer_size}});
         }
-         
+        
         var today = Math.floor((new Date()).getTime() / (24 * 3600 * 1000));
         var minexpires = today - 1;
         var maxexpires = today + filesender.config.max_transfer_days_valid + 1;
@@ -1239,9 +1243,10 @@ window.filesender.transfer = function() {
                 if (!transfer.files[i].id)
                     return errorhandler({message: 'file_not_in_response', details: {file: transfer.files[i]}});
             }
-            
-            if('get_a_link' in transfer.options && transfer.options.get_a_link)
+
+            if('get_a_link' in transfer.options && transfer.options.get_a_link) {
                 transfer.download_link = data.recipients[0].download_url;
+            }
             
             transfer.createRestartTracker();
             
@@ -1377,6 +1382,7 @@ window.filesender.transfer = function() {
      * Chunk by chunk upload
      */
     this.uploadChunk = function() {
+
         if (this.status == 'stopped')
             return;
         
@@ -1395,8 +1401,8 @@ window.filesender.transfer = function() {
         filesender.ui.log('Uploading chunk [' + offset + ' .. ' + end + '] from file ' + file.name);
         
         var slicer = file.blob.slice ? 'slice' : (file.blob.mozSlice ? 'mozSlice' : (file.blob.webkitSlice ? 'webkitSlice' : 'slice'));
-        
-        var blob = file.blob[slicer](offset, end);
+
+        var blob = file.blob[slicer](offset, end, "application/octet-stream");
         var file_uploaded_when_chunk_complete = end;
         if (file_uploaded_when_chunk_complete > file.size)
             file_uploaded_when_chunk_complete = file.size;

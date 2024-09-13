@@ -123,6 +123,7 @@ class AuthRemote
             $args = $_GET;
             unset($args['signature']);
             if (count($args)) {
+                unset($args['_']);                
                 $signed .= '?'.implode('&', RestUtilities::flatten($args));
             }
             
@@ -138,7 +139,7 @@ class AuthRemote
                 // Get user, fail if unknown or no user secret
                 try {
                     $authid = Authentication::ensureAuthIDFromSAMLUID($uid);
-                    $user = User::fromAuthID($authid);
+                    $user = User::fromAuthId($authid);
                     
                 } catch (UserNotFoundException $e) {
                     throw new AuthRemoteUserRejectedException($uid, 'user not found');

@@ -50,6 +50,7 @@ $args = new Args(
     array(
         'h' => 'help',
         'd:' => 'db_database:',
+        'm' => 'mariadb_skip_text_character_set_check'
     ));
 
 $args->getopts();
@@ -57,9 +58,14 @@ $args->maybeDisplayHelpAndExit(
     'Create or upgrade the database schema for FileSender....'."\n\n" .
     'Usage '.basename(__FILE__).' [-d|--db_database=<name>] '."\n" .
     "\t".'-d|--db_database Name of the database to connect to'."\n" .
+    "\t".'-m|--mariadb_skip_text_character_set_check Skip checking the text character encoding for columns'."\n" .
     "\t\n"
 );
 $args->MergeShortToLong();
+$arg_mariadb_skip_text_character_set_check = $args->getArg('mariadb_skip_text_character_set_check', false, false );
+if( $arg_mariadb_skip_text_character_set_check == '1' ) {
+    $arg_mariadb_skip_text_character_set_check = true;
+}
 $db_database = $args->getArg('db_database', false, null );
 if( $db_database ) {
     echo "originally set db_database is " . Config::get('db_database') . "\n";
@@ -67,9 +73,26 @@ if( $db_database ) {
     echo "newly set db_database is " . Config::get('db_database') . "\n";
 }
 echo "current db_database is " . Config::get('db_database') . "\n";
+$dbtype = Config::get('db_type');
+
+//
+// A quick sanity check that we know what db and dbname to connect 
+//
+if( $dbtype != 'mysql' && $dbtype != 'pgsql' ) {
+    echo "ERROR: Please set the db_type to your database type in config.php\n";
+    exit;
+}
+if( Config::get('db_database') == '' ) {
+    echo "ERROR: Please set the db_database to your database name in config.php\n";
+    exit;
+}
+
 
 $currentSchemaVersion = Metadata::getLatestUsedSchemaVersion();
-DBI::beginTransaction();
+if( $dbtype != 'mysql' ) {
+    DBI::beginTransaction();
+}
+
 
 
 // Get data classes
@@ -221,6 +244,101 @@ function ensureAllTables()
 }
 
 
+function verifyTableCharacterSetForTable( $class )
+{
+    echo 'verifyTableCharacterSetForTable class '.$class."\n";
+    
+    $datamap = call_user_func($class.'::getDataMap');
+    $viewmap = call_user_func($class.'::getViewMap');
+    $secindexmap = call_user_func($class.'::getSecondaryIndexMap');
+    $table = call_user_func($class.'::getDBTable');
+    
+    // Check if table exists
+    echo 'Working on table '.$table."\n";
+
+
+    
+    
+    $sql = "SELECT column_name as col,character_set_name as charset FROM information_schema.`COLUMNS` ";
+    $sql .= " WHERE table_schema = \"" . Config::get('db_database') . "\" ";
+    $sql .= " AND table_name = \"$table\" ";
+
+    $s = DBI::prepare($sql);
+    $s->execute(array());
+    $records = $s->fetchAll();
+    foreach ($records as $r) {
+        echo " " . $r['col'] . ' = ' . $r['charset'] . "\n";
+        $datamap[$r['col']]['db_charset'] = $r['charset'];
+    }
+
+    $dmcols = array_keys($datamap);
+    
+    foreach( $dmcols as $column ) {
+        $d = $datamap[$column];
+        $dt = $d['type'];
+        if( $dt == 'string' || $dt == 'text'  ) {
+            echo " column $column is a string! \n";
+            echo "    database has it as " . $d['db_charset'] . "\n";
+            if( $d['db_charset'] != 'utf8mb4' ) {
+                echo "\n";
+                echo "-----------------------------------------------------------------------\n";
+                echo "\n";
+                echo "ERROR When using mysql or mariadb the database and tables should use \n";
+                echo " the utf8mb4 TEXT CHARACTER SET.\n";
+                echo "\n";
+                echo "WARNING The database table $table has a string/text column with an incorrect character set!\n";
+                echo "        expecting utf8mb4 \n";
+                echo "        found     " . $d['db_charset'] . " \n";
+                echo "WARNING   please update column $column to use utf8mb4 \n";
+                echo "\n";
+                echo "Because columns, tables, and databases might derive their TEXT CHARACTER SET\n";
+                echo "automatic changes have not been added to the script to fix this issue.\n";
+                echo "\n";
+                echo "You can use:\n";
+                echo "  SHOW create table $table\n";
+                echo "in a mysql console to see if specific columns have TEXT CHARACTER SET explicitly set\n";
+                echo "otherwise please create a backup and test the following SQL:\n";
+                echo "  ALTER table $table CONVERT TO CHARACTER SET utf8mb4\n";
+                echo "\n";
+                echo "-----------------------------------------------------------------------\n";
+                echo "\n";
+                echo "ERROR When using mysql or mariadb the database and tables should use \n";
+                echo "ERROR  the utf8mb4 TEXT CHARACTER SET.\n";
+                echo "\n";
+                echo "ERROR See above for details \n";
+                echo "ERROR if you wish to ignore this check please use:\n";
+                echo "php database.php --mariadb_skip_text_character_set_check \n";
+                echo "-----------------------------------------------------------------------\n";
+exit;
+            }
+        }
+    }
+    
+}
+
+//
+// For mariadb we make sure that the character encoding is utf8mb4
+//
+function verifyTableCharacterSets()
+{
+    global $arg_mariadb_skip_text_character_set_check;
+    $dbtype = Config::get('db_type');
+    
+    if( $dbtype == 'mysql' ) {
+        
+        if( $arg_mariadb_skip_text_character_set_check ) {
+            echo "verifyTableCharacterSets() explicitly told to not test database schema character sets... skipping.\n";
+            return;
+        }
+        
+        $classes = array_merge(getConstantClasses(), getClasses());
+        foreach($classes as $class) {
+            verifyTableCharacterSetForTable( $class );
+        }
+    }
+}
+
+
 function renameColumn( $tableName, $oldname, $newname, $mysqltypestring  )
 {
     $dbtype = Config::get('db_type');
@@ -308,6 +426,18 @@ function ensureFK()
 	            call_user_func('Transfer::getDBTable'), 'transfer_passwordencoding', 'password_encoding',
 	            call_user_func('DBConstantPasswordEncoding::getDBTable'), 'id' ));
 
+
+    array_push( $fks,
+                new DatabaseForeignKey(
+                    'downloadonetimepasswords.tid refers to transfers.id',
+	            call_user_func('DownloadOneTimePassword::getDBTable'), 'DownloadOneTimePassword_tid', 'tid',
+	            call_user_func('Transfer::getDBTable'), 'id' ));
+    array_push( $fks,
+                new DatabaseForeignKey(
+                    'downloadonetimepasswords.rid refers to recipients.id',
+	            call_user_func('DownloadOneTimePassword::getDBTable'), 'DownloadOneTimePassword_rid', 'rid',
+	            call_user_func('Recipient::getDBTable'), 'id' ));
+    
     
     foreach ( $fks as $fk ) {
         $fk->ensure();
@@ -394,6 +524,9 @@ try {
         }
         echo 'Done removing views for table '.$table."\n";
     }
+
+
+    
 
     
 
@@ -609,6 +742,8 @@ try {
         echo 'Done updating views for table '.$table."\n";
     }
 
+    verifyTableCharacterSets();
+    
     
 } catch(Exception $e) {
     echo "Error, Rolling database changes back....\n";
@@ -618,16 +753,17 @@ try {
         echo '    " MariaDB (...) supports rollback of SQL-data change statements, but not of SQL-Schema statements."  ' . "\n";
         echo "    --  https://mariadb.com/kb/en/rollback/ \n";
         echo "\n";
+        echo "as this script performs mostly DDL statements transactions are not used for mariadb\n";
         echo "you should either get a full run of this script or compare the output to a backup\n";
     } else {
         echo " This should leave the database state as it was before you started the script\n";
+        DBI::rollBack();
     }
     if( $majorMigrationPerformed ) {
         echo "\n";
         echo "NOTE: As this was a major database schema update you might like to compare with a backup\n";
         echo "\n";
     }        
-    DBI::rollBack();
     $uid = ($e instanceof LoggingException) ? $e->getUid() : 'no available uid';
     echo 'Encountered exception : ' . $e->getMessage() . ', see logs for details (uid: '.$uid.') ...\n';
     exit(1);
@@ -635,7 +771,10 @@ try {
 
 echo "\n\n";
 echo "All core code worked (leaving foreign keys), commit to database starting...\n";
-DBI::commit();
+$dbtype = Config::get('db_type');
+if( $dbtype != 'mysql' ) {
+    DBI::commit();
+}
 echo "Commit went well, those changes are now permanent\n";
 
 

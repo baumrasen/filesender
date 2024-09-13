@@ -47,13 +47,13 @@ class File extends DBObject
         //file id, as in the database
         'id' => array(
             'type' => 'uint',   //data type of 'id'
-            'size' => 'medium', //size of the integer stored in 'id' (in bytes, or otherwise)
+            'size' => 'big',    //size of the integer stored in 'id' (in bytes, or otherwise)
             'primary' => true,  //indicates that 'id' is the primary key in the DB
             'autoinc' => true,   //indicates that 'id' is auto-incremented
         ),
         'transfer_id' => array(
             'type' => 'uint',
-            'size' => 'medium',
+            'size' => 'big',
         ),
         'uid' => array(
             'type' => 'string',
@@ -177,6 +177,7 @@ class File extends DBObject
     protected $iv = '';
     protected $aead = null;
     protected $have_avresults = false;
+    protected $storage_class_name = ''; // set in constructor
    
     /**
      * Related objects cache
@@ -337,9 +338,9 @@ class File extends DBObject
         $file->logsCache = array();
         $file->transfer_id = $transfer->id;
         $file->transferCache = $transfer;
-        
-        // Generate uid until it is indeed unique
-        $file->uid = Utilities::generateUID(function ($uid, $tries) {
+
+        // Generate timestamped uid until it is indeed unique
+        $file->uid = Utilities::generateUID(true, function ($uid, $tries) {
             $statement = DBI::prepare('SELECT * FROM '.File::getDBTable().' WHERE uid = :uid');
             $statement->execute(array(':uid' => $uid));
             $data = $statement->fetch();
@@ -348,7 +349,7 @@ class File extends DBObject
             }
             return !$data;
         });
-
+        
         $file->storage_class_name = Storage::getDefaultStorageClass();
 
         if (!is_null($size)) {
@@ -367,7 +368,7 @@ class File extends DBObject
     public function beforeDelete()
     {
         Storage::deleteFile($this);
-        
+        FileCollection::removeFile( $this );
         Logger::info($this.' deleted');
     }
     
@@ -400,7 +401,7 @@ class File extends DBObject
      */
     public static function fromTransfer(Transfer $transfer)
     {
-        $s = DBI::prepare('SELECT * FROM '.self::getDBTable().' WHERE transfer_id = :transfer_id');
+        $s = DBI::prepare('SELECT * FROM '.self::getDBTable().' WHERE transfer_id = :transfer_id order by name desc');
         $s->execute(array(':transfer_id' => $transfer->id));
         $tree_files = array();
         $files = array();
@@ -425,9 +426,11 @@ class File extends DBObject
             $t->execute(array(':transfer_id' => $transfer->id,
                               ':collection_type' => CollectionType::DIRECTORY_ID));
             foreach ($t->fetchAll() as $data) {
-                $file = $files[$data['id']];
-                $file->pathCache = $data['dirpath'].'/'.$file->name;
-                $file->directoryCache = $directories[$data['dir_id']];
+                if( array_key_exists($data['id'],$files)) {
+                    $file = $files[$data['id']];
+                    $file->pathCache = $data['dirpath'].'/'.$file->name;
+                    $file->directoryCache = $directories[$data['dir_id']];
+                }
             }
         }
         return $files;

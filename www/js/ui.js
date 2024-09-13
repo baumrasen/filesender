@@ -41,6 +41,8 @@ if(!('filesender' in window)) window.filesender = {};
  * UI methods
  */
 window.filesender.ui = {
+    uploading: false,
+    
     /**
      * Log to console if enabled
      * 
@@ -96,7 +98,7 @@ window.filesender.ui = {
         var btndef = [];
         for(var lid in buttons) {
             btndef.push({
-                text: lang.tr(lid).out(),
+                text: lang.tr(lid).out().replace(/<[^>]*>/g, ''),
                 click: handle(lid)
             });
         }
@@ -317,8 +319,21 @@ window.filesender.ui = {
      * Redirect user to url
      * 
      * @param string url
+     * @param object args optional cgi key=value settings to send as args to the server
      */
-    redirect: function(url) {
+    redirect: function(url,args) {
+        if(args) {
+            var current_args = {};
+            for(var k in args) {
+                current_args[k] = args[k];
+            }
+            args = [];
+            for(var k in current_args) {
+                args.push(k + '=' + current_args[k]);
+            }
+            url = url + '&' + args.join('&');
+        }
+        
         window.location.href = url;
     },
     
@@ -375,16 +390,20 @@ window.filesender.ui = {
         return error.message;
     },
     rawError: function (text) {
+        console.log(text);
+        var doc = new DOMParser().parseFromString(text, 'text/html');
+        if (doc.getElementsByClassName('exception')) { //if this is from our template, pull out the exception only.
+                text = doc.getElementsByClassName('exception')[0].textContent || text;
+        } else { //strip html as alert cant process that.
+                text = doc.body.textContent || text;
+        }
 	text = (text.match(/^[a-z][a-z0-9_]+$/i) ? lang.tr(text) : text).trim();
 	if (text!='') {
 	        alert('Error : ' + text);
 	}
     },
     
-    
-    
-    
-    
+
     /**
      * Format size in bytes
      * 
@@ -597,7 +616,7 @@ window.filesender.ui = {
         if(!id || isNaN(id)) return;
         
         var duration = parseInt(t.attr('data-expiry-extension'));
-        
+
         var extend = function(remind) {
             filesender.client.extendObject(className,id, remind, function(t) {
                 $('.objectholder[data-id="' + id + '"]').attr('data-expiry-extension', t.expiry_date_extension);
@@ -640,6 +659,14 @@ window.filesender.ui = {
     
 };
 
+function getCookie( name ) {
+    const cookieValue = document.cookie
+          .split("; ")
+          .find((row) => row.startsWith(name + "="))
+    ?.split("=")[1];
+    return cookieValue;
+}
+
 $(function() {
     $('#topmenu_help[href="#"]').on('click', function() {
         $('#dialog-help').dialog({
@@ -680,4 +707,31 @@ $(function() {
         $(".files.box .file[data-encrypted='1'] .download").hide();
         $(".download_decryption_disabled").show();
     }
+
+    if( window.filesender.config.auth_warn_session_expired ) {
+
+        var sessionExpires = getCookie('X-FileSender-Session-Expires');
+        if( !sessionExpires ) {
+            return;
+        }
+        const n = Math.floor(Date.now() / 1000);
+        console.log("session expire check, top cookie:" + sessionExpires + " n " + n + " time to go " + (sessionExpires-n) );
+        const timeout = (sessionExpires-n);
+        console.log("session expire check, timeout function in " + timeout );
+
+        window.filesender.ui.check_expired = window.setTimeout(function() {
+            console.log("session expire check: your session has expired!");
+            document.cookie = "X-FileSender-Session-Expires=0;path=/;";
+
+            if( window.filesender.ui.uploading ) {
+                console.log("session expire check: user is uploading, not showing warning about session expired");
+            } else {
+                window.filesender.ui.alert('info', filesender.config.language.session_expired_warning, function() {
+                    window.filesender.ui.reload();
+                });
+            }
+        }, timeout * 1000  );
+        
+    }
+    
 });

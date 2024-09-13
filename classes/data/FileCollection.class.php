@@ -46,13 +46,13 @@ class FileCollection extends DBObject
         //primary key pair <collection_id,file_id>
         'collection_id' => array(
             'type' => 'uint',   //data type of 'id'
-            'size' => 'medium',
+            'size' => 'big',
             'primary' => true,
         ),
         'file_id' => array(
             'type' => 'uint',   //data type of 'id'
-            'size' => 'medium',
-                        'primary' => true,
+            'size' => 'big',
+            'primary' => true,
         ),
     );
 
@@ -280,6 +280,12 @@ class FileCollection extends DBObject
         $s->execute(array(':collection_id' => $this->collection_id,
                           ':file_id' => $this->file_id));
     }
+
+    public static function removeFile( $file )
+    {
+        $s = DBI::prepare('DELETE FROM '.static::getDBTable().' WHERE file_id = :file_id');
+        $s->execute(array(':file_id' => $file->id));
+    }   
     
     /**
      * Getter

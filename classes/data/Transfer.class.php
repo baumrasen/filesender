@@ -50,7 +50,7 @@ class Transfer extends DBObject
     protected static $dataMap = array(
         'id' => array(
             'type' => 'uint',
-            'size' => 'medium',
+            'size' => 'big',
             'primary' => true,
             'autoinc' => true
         ),
@@ -64,7 +64,7 @@ class Transfer extends DBObject
         ),
         'guest_id' => array(
             'type' => 'uint',
-            'size' => 'medium',
+            'size' => 'big',
             'null' => true
         ),
         'lang' => array(
@@ -160,6 +160,25 @@ class Transfer extends DBObject
             'type'    => 'bool',
             'null'    => true,
             'default' => true,
+        ),
+
+        'storage_filesystem_per_day_buckets' => array(
+            'type'    => 'bool',
+            'null'    => false,
+            'default' => false,
+        ),
+        'storage_filesystem_per_hour_buckets' => array(
+            'type'    => 'bool',
+            'null'    => false,
+            'default' => false,
+        ),
+
+
+        'download_count' => array(
+            'type'    => 'uint',
+            'size'    => 'big',
+            'default' => 0,
+            'null'    => false,
         ),
         
     );
@@ -258,6 +277,9 @@ class Transfer extends DBObject
         ),
         'expires' => array(
             'expires' => array()
+        ),
+        'downlaods' => array(
+            'download_count' => array()
         )
     );
 
@@ -313,6 +335,10 @@ class Transfer extends DBObject
     protected $client_entropy = '';
     protected $roundtriptoken = '';
     protected $guest_transfer_shown_to_user_who_invited_guest = true;
+    protected $storage_filesystem_per_day_buckets = false;
+    protected $storage_filesystem_per_hour_buckets = false;
+    protected $download_count = 0;
+
     
     /**
      * Related objects cache
@@ -322,6 +348,12 @@ class Transfer extends DBObject
     private $recipientsCache = null;
     private $logsCache = null;
     private static $optionsCache = null;
+
+    /**
+     * Allows a $force param to be sent to beforeDelete() to ignore
+     * errors deleting individual files and continue
+     */
+    public $deleteForce = false;
     
     /**
      * Constructor
@@ -333,6 +365,10 @@ class Transfer extends DBObject
      */
     protected function __construct($id = null, $data = null)
     {
+        $this->storage_filesystem_per_day_buckets = Config::get('storage_filesystem_per_day_buckets');
+        $this->storage_filesystem_per_hour_buckets = Config::get('storage_filesystem_per_hour_buckets');
+        $this->download_count = 0;
+        
         if (!is_null($id)) {
             // Load from database if id given
             $statement = DBI::prepare('SELECT * FROM '.self::getDBTable().' WHERE id = :id');
@@ -353,6 +389,7 @@ class Transfer extends DBObject
             CollectionType::initialize();
             $this->collectionsCache = Collection::fromTransfer($this);
         }
+
     }
     
     /**
@@ -428,7 +465,6 @@ class Transfer extends DBObject
         if ($user instanceof User) {
             $user = $user->id;
         }
-
         return self::all(
             array(
                 'view'  => $viewClause,
@@ -567,6 +603,14 @@ class Transfer extends DBObject
     public static function getDefaultExpire()
     {
         $days = Config::get('default_transfer_days_valid');
+
+        if( Auth::isGuest()) {
+            $guest = AuthGuest::getGuest();
+            if( $guest->guest_upload_default_expire_is_guest_expire ) {
+                $days = min( Config::get('max_transfer_days_valid'),
+                             $guest->expires_in_days );
+            }
+        }
         
         return strtotime('+'.$days.' day');
     }
@@ -673,7 +717,15 @@ class Transfer extends DBObject
         }
         
         foreach ($this->files as $file) {
-            $this->removeFile($file);
+            try {
+                $this->removeFile($file);
+            } catch (Exception $e) {
+                if( $this->deleteForce ) {
+                    Logger::warn("Transfer::delete() Failed to delete file error:" . $e->getMessage());
+                } else {
+                    throw $e;
+                }
+            }
         }
         
         foreach ($this->recipients as $recipient) {
@@ -700,8 +752,10 @@ class Transfer extends DBObject
     /**
      * Close the transfer
      */
-    public function close($manualy = true)
+    public function close( $manualy = true, $force = false )
     {
+        $this->deleteForce = $force;
+        
         switch ($this->status) {
             case TransferStatuses::CREATED:
             case TransferStatuses::STARTED:
@@ -754,9 +808,17 @@ class Transfer extends DBObject
         }
       
         // Send report if needed
-        if (!is_null(Config::get('auditlog_lifetime')) && $this->getOption(TransferOptions::EMAIL_REPORT_ON_CLOSING)) {
-            $report = new Report($this);
-            $report->sendTo($this->owner);
+        try {
+            if (!is_null(Config::get('auditlog_lifetime')) && $this->getOption(TransferOptions::EMAIL_REPORT_ON_CLOSING)) {
+                $report = new Report($this);
+                $report->sendTo($this->owner);
+            }
+        } catch (Exception $e) {
+            if( $force ) {
+                Logger::warn("Failed to send report during transfer close. error:" . $e->getMessage());
+            } else {
+                throw $e;
+            }
         }
         
         if (!Config::get('auditlog_lifetime')) {
@@ -765,7 +827,16 @@ class Transfer extends DBObject
         } else {
             // In case we keep audit data for some time only delete actual file data in storage
             foreach ($this->files as $file) {
-                Storage::deleteFile($file);
+                try {
+		    Logger::debug('Attempt to call Storage::deleteFile for ' . $file);
+                    Storage::deleteFile($file);
+                } catch (Exception $e) {
+                    if( $force ) {
+                        Logger::warn("Transfer::delete() Failed to delete file error:" . $e->getMessage());
+                    } else {
+                        throw $e;
+                    }
+                }
             }
         }
         
@@ -787,6 +858,8 @@ class Transfer extends DBObject
     /**
      * Check that the user has read/write permission 
      * for this transfer.
+     *
+     * If the user is a guest then a valid 'vid' must be provided.
      * 
      * @return true if they are allowed or false if access should be forbidden
      */
@@ -800,6 +873,7 @@ class Transfer extends DBObject
         }
         
         if (Auth::isGuest()) {
+            // this will throw if there is no vid
             $guest = AuthGuest::getGuest();
             if( !$guest ) {
                 return FALSE;
@@ -1001,6 +1075,9 @@ class Transfer extends DBObject
             'expires', 'expiry_extensions', 'options', 'lang', 'key_version', 'userid',
             'password_version', 'password_encoding', 'password_encoding_string', 'password_hash_iterations'
             , 'client_entropy', 'roundtriptoken', 'guest_transfer_shown_to_user_who_invited_guest'
+            , 'storage_filesystem_per_day_buckets', 'storage_filesystem_per_hour_buckets'
+            , 'download_count'
+            
         ))) {
             return $this->$property;
         }
@@ -1101,6 +1178,9 @@ class Transfer extends DBObject
         }
         
         if ($property == 'upload_time') {
+            if( empty($this->files)) {
+                return 0;
+            }
             return $this->upload_end - $this->upload_start;
         }
         
@@ -1207,6 +1287,12 @@ class Transfer extends DBObject
             $this->client_entropy = $value;
         } elseif ($property == 'guest_transfer_shown_to_user_who_invited_guest') {
             $this->guest_transfer_shown_to_user_who_invited_guest = $value;
+        } elseif ($property == 'storage_filesystem_per_day_buckets') {
+            $this->storage_filesystem_per_day_buckets = $value;
+        } elseif ($property == 'storage_filesystem_per_hour_buckets') {
+            $this->storage_filesystem_per_hour_buckets = $value;
+        } elseif ($property == 'download_count') {
+            $this->download_count = $value;
         } else {
             throw new PropertyAccessException($this, $property);
         }
@@ -1458,6 +1544,9 @@ class Transfer extends DBObject
         if (!count($this->recipients)) {
             throw new TransferNoRecipientsException();
         }
+
+        $this->storage_filesystem_per_day_buckets = Config::get('storage_filesystem_per_day_buckets');
+        $this->storage_filesystem_per_hour_buckets = Config::get('storage_filesystem_per_hour_buckets');
         
         // Update status and log to audit/stat
         $this->status = TransferStatuses::AVAILABLE;
@@ -1506,8 +1595,19 @@ class Transfer extends DBObject
         if (!$this->getOption(TransferOptions::GET_A_LINK)) {
             // Unless get_a_link mode process options
             
-            if ($this->getOption(TransferOptions::ADD_ME_TO_RECIPIENTS) && !$this->isRecipient($this->user_email)) {
-                $this->addRecipient($this->user_email);
+            if ($this->getOption(TransferOptions::ADD_ME_TO_RECIPIENTS)) {
+                $rcpt = $this->user_email;
+
+                if(Auth::isGuest()) {
+                    $guest = AuthGuest::getGuest();
+                    if($guest->getOption(GuestOptions::CAN_ONLY_SEND_TO_ME)) {
+                        $rcpt = $guest->user_email;
+                    }
+                }
+
+                if(!$this->isRecipient($rcpt)) {
+                    $this->addRecipient($rcpt);
+                }
             }
             
             // Send notification of availability to recipients

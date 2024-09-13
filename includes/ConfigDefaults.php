@@ -43,6 +43,8 @@ $default = array(
     'lang_selector_enabled' => false, // Display language selector (requires lang_url_enabled = true)
     'lang_save_url_switch_in_userpref' => false, // Save lang switching in user preferences (requires lang_url_enabled = true and lang_userpref_enabled = true)
     'site_name' => 'FileSender', // Default site name to user
+    'site_css' => '', // [optional] This allows an additional css file to be loaded per site using auth_config_regex_files
+    'site_logo' => '', // [optional] This allows a different logo image to be used per site using auth_config_regex_files
     'email_use_html' => true,   // By default, use HTML on mails
     'relay_unknown_feedbacks' => 'sender',   // Report email feedbacks with unknown type but with identified target (recipient or guest) to target owner
     'upload_display_bits_per_sec' => false, // By default, do not show bits per seconds 
@@ -66,6 +68,8 @@ $default = array(
     
     'auth_remote_user_autogenerate_secret' => false,
     'auth_remote_signature_algorithm' => 'sha1',
+
+    'auth_warn_session_expired' => false,
 
     'auth_remote_user_enabled' => false, //disables remote user auth
     
@@ -106,6 +110,7 @@ $default = array(
     
     'encryption_enabled' => true,
     'encryption_mandatory' => false,
+    'encryption_mandatory_with_generated_password' => false,
     'encryption_min_password_length' => 12,
     'encryption_password_must_have_upper_and_lower_case' => true,
     'encryption_password_must_have_numbers' => true,
@@ -164,11 +169,18 @@ $default = array(
     'storage_filesystem_external_script' => FILESENDER_BASE.'/scripts/StorageFilesystemExternal/external.py',
 
     'storage_filesystem_shred_path' => FILESENDER_BASE.'/shredfiles',
+    'storage_filesystem_per_day_buckets' => false,
+    'storage_filesystem_per_hour_buckets' => false,
+    'storage_filesystem_per_day_max_age_to_create_directory' => 7,
+    'storage_filesystem_per_day_min_days_to_clean_empty_directories' => -1,
+    'storage_filesystem_per_day_max_days_to_clean_empty_directories' => 150,
+    'transfers_table_show_admin_full_path_to_each_file' => false,
     
     'email_from' => 'sender',
     'email_return_path' => 'sender',
     'email_subject_prefix' => '{cfg:site_name}:',
     'email_headers' => false,
+    'email_send_with_minus_r_option' => true,
     
     'report_bounces' => 'asap',
     'report_bounces_asap_then_daily_range' => 15 * 60,
@@ -178,6 +190,7 @@ $default = array(
     'statlog_lifetime' => 0,
     'statlog_log_user_organization' => false,
     'auditlog_lifetime' => 31,
+    'ratelimithistory_lifetime' => 31,
     
     'storage_usage_warning' => 20,
     
@@ -200,11 +213,14 @@ $default = array(
 
     'upload_graph_bulk_display' => true, 
     'upload_graph_bulk_min_file_size_to_consider' => 1024*1024*1024, 
-
+    'upload_graph_use_cache_table' => false,
 
     'support_email' => '',
 
     'user_page' => array('lang'=>true,'auth_secret'=>true,'id'=>true,'created'=>true),
+
+    'log_authenticated_user_download_by_ensure_user_as_recipient' => false,
+    
 
     // Logging
     'log_facilities' => array(
@@ -229,6 +245,10 @@ $default = array(
     'cloud_s3_key'    => 'accessKey1',
     'cloud_s3_secret' => 'verySecretKey1',
     'cloud_s3_bucket' => '',
+    'cloud_s3_use_daily_bucket' => false,
+    'cloud_s3_bucket_prefix' => '',
+    'cloud_s3_bulk_delete' => false,
+    'cloud_s3_bulk_size' => 1000,
 
     'disable_directory_upload' => true,
     'directory_upload_button_enabled' => true,
@@ -257,6 +277,7 @@ $default = array(
                                                                 , 'email_daily_statistics', 'email_report_on_closing'
                                                                 , 'enable_recipient_email_download_complete'
                                                                 , 'add_me_to_recipients', 'redirect_url_on_complete'
+                                                                , 'hide_sender_email'
     ),
 
     'header_x_frame_options' => 'sameorigin',
@@ -292,6 +313,8 @@ $default = array(
     'streamsaver_on_edge'   => true,
     'streamsaver_on_safari' => true,
 
+    'filesystemwritablefilestream_enabled' => false,
+    
     'upload_page_password_can_not_be_part_of_message_handling' => 'warning',
 
     'data_protection_user_frequent_email_address_disabled' => false,
@@ -307,6 +330,33 @@ $default = array(
 
 
     'service_aup_min_required_version' => 0,
+
+    'cookie_domain' => '',
+
+    'allow_pages_core' => array(
+        GUIPages::DOWNLOAD, GUIPages::TRANSLATE_EMAIL,
+        GUIPages::LOGOUT, GUIPages::EXCEPTION,
+        GUIPages::HELP, GUIPages::ABOUT, GUIPages::PRIVACY ),
+
+    'allow_pages_add_for_guest' => array( GUIPages::HOME,
+                                          GUIPages::UPLOAD,
+                                          GUIPages::APISECRETAUP ),
+    'allow_pages_add_for_user' => array( GUIPages::HOME,
+                                         GUIPages::USER,
+                                         GUIPages::UPLOAD,
+                                         GUIPages::TRANSFERS,
+                                         GUIPages::GUESTS,
+                                         GUIPages::DOWNLOAD,
+                                         GUIPages::APISECRETAUP ),
+    'allow_pages_add_for_admin' => array( GUIPages::ADMIN ),
+    
+    'download_verification_code_enabled' => false,
+    'download_verification_code_valid_duration' => 60*15,
+    'download_verification_code_random_bytes_used' => 8,
+
+    'download_show_download_links' => false,
+
+    'read_only_mode' => false,
     
     'transfer_options' => array(
         'email_me_copies' => array(
@@ -415,4 +465,18 @@ $default = array(
             'default' => true
         ),
     ),
+
+
+    'rate_limits' => array(
+        'email' => array(
+            'guest_created'      => array( 'day' => 100 ),
+            'report_inline'      => array( 'day' => 100 ),
+            'transfer_reminder'  => array( 'day' => 100 ),
+            'download_complete'  => array( 'day' => 500 ),
+            'files_downloaded'   => array( 'day' => 500 ),
+            'guest_upload_start' => array( 'day' => 100 ),
+            'transfer_available' => array( 'day' => 500 ),
+        ),
+    ),
+
 );

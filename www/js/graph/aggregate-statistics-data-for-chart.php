@@ -86,6 +86,7 @@ foreach($result as $row) {
         $maxValue = max($maxValue,$row['sizesum']);
     }
 }
+$valdiv = 1;
 $x_per_second = 'size_tb';
 if( $maxValue < 1024*1024*1024*1024 ) {
     $x_per_second = 'size_gb';
@@ -135,23 +136,19 @@ $data = array(
 	    'text' => Lang::tr('aggregate_stats_graph_title_per_time_interval')
                           ->r('eventtype',$eventtypetr)->r('epochtype',$epochtypetr)->out()
 	),
-	'legend' => array(
-            'position' => 'none'
-	),
-	'scales' => array(
-	    'yAxes' => array(
-		array(
-		    'ticks' => array( 'min' => 0 ),
-                    'scaleLabel' => array( 'display' => true,
-                                            'labelString' => $ylabel,
-                                         ),
-		),
-	    ),
-            'xAxes' => array(
-                array(
-                    'type' => 'time',
-		    'ticks' => array( 'min' => 0 ),
+        'plugins' => array(
+                'legend' => array(
+                    'position' => 'none'
                 ),
+        ),
+	'scales' => array(
+            'yAxes' => array(
+                'display' => true,
+                'title' => array (
+                    'display' => true,
+                    'text' => $ylabel
+                ),
+                'ticks' => array( 'min' => 0 ),
             ),
 	)
     )

@@ -255,7 +255,7 @@ class Archiver
                 $zipfile = new ZipStream\File($archive, $archivedName, $fileopts);
                 
                 $stream = $file->getStream();
-                $zipfile->processStream(new ZipStream\DeflateStream($stream));
+                $zipfile->processStream(new ZipStream\Stream($stream));
                 fclose($stream);
             }
 
@@ -305,6 +305,9 @@ class Archiver
 	while ($data = fread($stream, $block_size))
 	{
 	    $archive->stream_file_part($data);
+            if( feof($stream) ) {
+                break;
+            }            
 	}
         fclose($stream);
 	$archive->complete_file_stream();        

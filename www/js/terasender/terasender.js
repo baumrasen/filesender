@@ -83,6 +83,12 @@ window.filesender.terasender = {
     crypto_app: null,
 
     /**
+     * To stop the server sending emails for each file in the encrypted download.
+     */
+    crypto_encrypted_archive_download_fileidlist: '',
+//    crypto_encrypted_archive_download: false,
+    
+    /**
      * Send command to worker
      * 
      * @param worker workerinterface
@@ -134,7 +140,9 @@ window.filesender.terasender = {
                 roundtriptoken:     this.transfer.roundtriptoken,
                 link:               this.receiver.link,
                 security_token:     this.security_token,
-                csrfptoken:         filesender.client.getCSRFToken()
+                csrfptoken:         filesender.client.getCSRFToken(),
+                crypto_encrypted_archive_download: window.filesender.crypto_encrypted_archive_download,
+                crypto_encrypted_archive_download_fileidlist: this.crypto_encrypted_archive_download_fileidlist
             };
 
             this.log('allocateJob(recv) chunk:' + chunkid + ' giving job to worker');
@@ -259,7 +267,6 @@ window.filesender.terasender = {
         
         if(job) {
             this.log('Found job file:' + (job.file ? job.file.id : worker.file_id) + '[' + job.chunk.start + '...' + job.chunk.end + ']');
-            
             workerinterface.status = 'uploading';
             this.sendCommand(workerinterface, 'executeJob', job);
         }else{
@@ -301,6 +308,14 @@ window.filesender.terasender = {
         if( this.receiver && this.receiver.onError ) {
             this.receiver.onError( error );
         }
+
+        var doc = new DOMParser().parseFromString(error.message, 'text/html');
+        if (doc.getElementsByClassName('exception')) { //if this is from our template, pull out the exception only.
+            error.message = 'exception';
+        } else {
+            error.message = doc.body.textContent || error.message;
+        }
+
         error.messageTranslated = error.message;
         error.message = 'terasender_' + error.message;
         

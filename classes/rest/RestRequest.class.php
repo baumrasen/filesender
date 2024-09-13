@@ -96,7 +96,7 @@ class RestInput
      * Body data holder
      */
     private $data = array();
-    
+
     /**
      * Recursive crawler that converts raw data into browsable data
      *

@@ -1,3 +1,7 @@
+/**
+ * Part of the Filesender software.
+ * See http://filesender.org
+ */
 
 if (typeof window === 'undefined')
     window = {}; // dummy window for use in webworkers
@@ -39,6 +43,13 @@ if (!('onPBKDF2AllEnded' in window.filesender)) {
 }
 
 window.filesender.crypto_app_downloading = false;
+
+// list of fileid for this encrypted download
+window.filesender.crypto_encrypted_archive_download_fileidlist = '';
+
+window.filesender.crypto_last_password_succeeded = false;
+window.filesender.crypto_last_password = '';
+
 
 /*
  * Main entry points
@@ -95,6 +106,14 @@ window.filesender.crypto_app = function () {
         disable_streamsaver: false,
 
 
+        useStreamSaver: function() {
+            // Should we use streamsaver for this download?
+            window.filesender.config.use_streamsaver = window.filesender.config.allow_streamsaver;
+            if( this.disable_streamsaver ) {
+                window.filesender.config.use_streamsaver = false;
+            }
+            return window.filesender.config.use_streamsaver;
+        },
 
         /**
          * This turns a filesender chunkid into a 4 byte array
@@ -701,40 +720,45 @@ window.filesender.crypto_app = function () {
                                                             callbackError );
 
                 window.filesender.log("decryptBlob() about to really decrypt() nonStreamed " + nonStreamed );
-                
-                crypto.subtle.decrypt(decryptParams, key, value.data).then(
-                    function (result) {
-                        var blobArrayBuffer = new Uint8Array(result);
-                        blobSink.visit(chunkid,blobArrayBuffer);
-                        // done
-                        if( chunkid == encryption_details.chunkcount ) {
 
-                            window.filesender.log("decryptBlob() done" );
-                            $this.decryptBlobSpecificFinalChunkChecks( chunkid,
-                                                                       encryption_details,
-                                                                       callbackError );
-                            callbackDone(blobSink);
-                        }
-                        else
-                        {
-                            callbackNext();
-                        }
-                    },
-                    function (e) {
-                        window.filesender.log("decrypt(e) nonStreamed " + nonStreamed );
-                        window.filesender.log(e);
-                        if(nonStreamed) {
-                            e = new Error();
-                        }
-                        if (!wrongPassword) {
-                            wrongPassword=true;
-                            window.filesender.log("decrypt(e5) nonStreamed " + nonStreamed );
-                            window.filesender.log("decrypt(e5) msg " + e.message );
-                            filesender.client.decryptionFailedForTransfer( encryption_details.transferid );
-                            callbackError(e);
-                        }
+                var decryptAndContinue = async function() {
+                    var result = await crypto.subtle.decrypt(decryptParams, key, value.data);
+                    var blobArrayBuffer = new Uint8Array(result);
+                    window.filesender.log("decryptBlob() about to visit the data" );
+                    await blobSink.visit(chunkid,blobArrayBuffer);
+                    window.filesender.log("decryptBlob() visited the data" );
+                    // done
+                    if( chunkid == encryption_details.chunkcount ) {
+                                        
+                        window.filesender.log("decryptBlob() done" );
+                        $this.decryptBlobSpecificFinalChunkChecks( chunkid,
+                                                                   encryption_details,
+                                                                   callbackError );
+                        callbackDone(blobSink);
                     }
-		);
+                    else
+                    {
+                        callbackNext();
+                    }
+                };
+
+                // dispatch into an async function for await -> catch()
+                decryptAndContinue()
+                    .then( function() {} )
+                    .catch( e => {
+                            window.filesender.log("decrypt(e) nonStreamed " + nonStreamed );
+                            window.filesender.log(e);
+                            if(nonStreamed) {
+                                e = new Error();
+                            }
+                            if (!wrongPassword) {
+                                wrongPassword=true;
+                                window.filesender.log("decrypt(e5) nonStreamed " + nonStreamed );
+                                window.filesender.log("decrypt(e5) msg " + e.message );
+                                filesender.client.decryptionFailedForTransfer( encryption_details.transferid );
+                                callbackError(e);
+                            }
+                    });
             }
             catch(e) {
                 callbackError(e);                
@@ -768,7 +792,9 @@ window.filesender.crypto_app = function () {
             var startoffset = 1 * (chunkid * chunksz);
             var endoffset   = 1 * (chunkid * chunksz + (1*$this.upload_crypted_chunk_size)-1);
             var legacyChunkPadding = 0;
+            oReq.setRequestHeader('X-FileSender-Encrypted-Archive-Download', filesender.crypto_encrypted_archive_download );
 
+            
             //
             // There are some extra things to do for streaming legacy type files
             //
@@ -821,6 +847,10 @@ window.filesender.crypto_app = function () {
                 window.filesender.log("downloadAndDecryptChunk(adjustments done) "
                                       + " eoffset " + endoffset
                                       + " padding " + padding );
+
+                oReq.setRequestHeader('X-FileSender-Encrypted-Archive-Contents', window.filesender.crypto_encrypted_archive_download_fileidlist );
+                window.filesender.crypto_encrypted_archive_download_fileidlist = '';
+                
             }
             
             var brange = 'bytes=' + startoffset + '-' + endoffset;
@@ -998,15 +1028,12 @@ window.filesender.crypto_app = function () {
             encryption_details.client_entropy_decoded = new Uint8Array(16);
 
             // Should we use streamsaver for this download?
-            window.filesender.config.use_streamsaver = window.filesender.config.allow_streamsaver;
-            if( this.disable_streamsaver ) {
-                window.filesender.config.use_streamsaver = false;
-            }
+            var use_streamsaver = $this.useStreamSaver();
             window.filesender.log('StreamSaver info. config.allow ' + window.filesender.config.allow_streamsaver
                                   + ' this.disable ' + this.disable_streamsaver
-                                  + ' config.use ' + window.filesender.config.use_streamsaver );
+                                  + ' config.use ' + use_streamsaver );
 
-            if( window.filesender.config.use_streamsaver ) {
+            if( use_streamsaver ) {
                 const ponyfill = window.WebStreamsPolyfill || {};
                 streamSaver.WritableStream = ponyfill.WritableStream;
                 streamSaver.mitm = window.filesender.config.streamsaver_mitm_url;
@@ -1138,6 +1165,8 @@ window.filesender.crypto_app = function () {
                                 progress.html(window.filesender.config.language.download_complete);
                             }
                             blobSink.done();
+
+                            window.filesender.crypto_last_password_succeeded = true;
                         };
                         
                         var callbackProgress = function (i,c) {
@@ -1205,6 +1234,8 @@ window.filesender.crypto_app = function () {
         {
             var $this = this;
 
+            filesender.crypto_encrypted_archive_download = false;
+            
             callbackError = function (error) {
                 window.filesender.log(error);
                 window.filesender.crypto_app_downloading = false;
@@ -1215,10 +1246,8 @@ window.filesender.crypto_app = function () {
             };
 
             // Should we use streamsaver for this download?
-            window.filesender.config.use_streamsaver = window.filesender.config.allow_streamsaver;
-            if( this.disable_streamsaver ) {
-                window.filesender.config.use_streamsaver = false;
-            }
+            var use_streamsaver = $this.useStreamSaver();
+            
             
             /*
              * This is a blob visitor that performs a legacy (as of mid 2020)
@@ -1267,12 +1296,19 @@ window.filesender.crypto_app = function () {
             var blobSink = blobSinkLegacy;
             var blobSinkStreamed = blobSinkLegacy;
 
+            window.filesender.log('Newer streaming API information.'
+                                  + ' Use streamsaver: ' + window.filesender.config.use_streamsaver
+                                  + ' use FileSystemWritableFileStream (FSWF) ' + window.filesender.config.useFileSystemWritableFileStreamForDownload());
             /*
-             * If we should use the streamsaver implementation then
-             * declare the code and set blobSink to use that instead
-             */                     
-            if( window.filesender.config.use_streamsaver ) {
-
+             * As of 2023 we can use either streamsaver or FileSystemWritableFileStream
+             * to stream the contents to a file on disk. Note that the final else case is already
+             * attended to above as blobSink is already a blobSinkLegacy
+             */
+            if( window.filesender.config.useFileSystemWritableFileStreamForDownload()) {
+                window.filesender.log('Using FSWF code for storing data...' );
+                blobSinkStreamed = window.filesender.filesystemwritablefilestream_sink( name, filesize, callbackError );
+                blobSink = blobSinkStreamed;
+            } else if( window.filesender.config.use_streamsaver ) {
                 window.filesender.log('Using new StreamSaver code for storing data...' );
                 blobSinkStreamed = window.filesender.streamsaver_sink( name, filesize, callbackError );
                 blobSink = blobSinkStreamed;
@@ -1281,7 +1317,8 @@ window.filesender.crypto_app = function () {
             
             var prompt = window.filesender.ui.prompt(window.filesender.config.language.file_encryption_enter_password, function (password) {
                 var pass = $(this).find('input').val();
-            
+                window.filesender.crypto_last_password = pass;
+                
                 $this.decryptDownloadToBlobSink( blobSink, pass, transferid,
                                                  link, mime, name, filesize, encrypted_filesize,
                                                  key_version, salt,
@@ -1294,7 +1331,16 @@ window.filesender.crypto_app = function () {
 
             // Add a field to the prompt
             var trshowhide = window.filesender.config.language.file_encryption_show_password;
+
+            if( window.filesender.crypto_last_password_succeeded ) {
+                $('<p>' + lang.tr('previous_password_shown_for_next_action').out() + '</p>').appendTo(prompt);
+            }            
             var input = $('<input id="dlpass" type="password" class="wide" autocomplete="new-password" />').appendTo(prompt);
+            if( window.filesender.crypto_last_password_succeeded ) {
+                input.attr("value", window.filesender.crypto_last_password );
+            }
+            window.filesender.crypto_last_password_succeeded = false;
+
             var toggleView = $('<br/><input type="checkbox" id="showdlpass" name="showdlpass" value="false"><label for="showdlpass">' + trshowhide + '</label>');
             prompt.append(toggleView);
             $('#showdlpass').on(
@@ -1318,6 +1364,15 @@ window.filesender.crypto_app = function () {
                 + "." + archiveFormat;
             return archiveName;
         },
+        setDownloadFileidlist: function( selectedFiles ) {
+            var fileidlist = '';
+            for(var i=0; i<selectedFiles.length; i++) {
+                var f = selectedFiles[i];
+                fileidlist += f.fileid;
+                fileidlist += ',';
+            }
+            window.filesender.crypto_encrypted_archive_download_fileidlist = fileidlist;
+        },
         decryptDownloadToZip: function(link,transferid,selectedFiles,progress,onFileOpen,onFileClose,onComplete) {
 
             var $this = this;
@@ -1330,21 +1385,44 @@ window.filesender.crypto_app = function () {
                     progress.html(window.filesender.config.language.file_encryption_wrong_password);
                 }
             };
-            
+            filesender.crypto_encrypted_archive_download = true;
+
             var prompt = window.filesender.ui.prompt(window.filesender.config.language.file_encryption_enter_password, function (password) {
                 var pass = $(this).find('input').val();
+                window.filesender.crypto_last_password = pass;
 
                 var archiveName = $this.getArchiveFileName(link,selectedFiles,"zip");
-                blobSinkStreamed = window.filesender.streamsaver_sink_zip64( $this, link, transferid, archiveName, pass, selectedFiles, callbackError );
-                blobSink = blobSinkStreamed;
-                blobSink.init();
-                blobSink.progress = progress;
-                blobSink.onOpen   = onFileOpen;
-                blobSink.onClose  = onFileClose;
-                blobSink.onComplete = onComplete;
 
-                // start downloading.
-                blobSink.downloadNext();
+                window.filesender.log('Zip64 newer streaming API information.'
+                                      + ' Use streamsaver: ' + window.filesender.config.use_streamsaver
+                                      + ' use FileSystemWritableFileStream (FSWF) ' + window.filesender.config.useFileSystemWritableFileStreamForDownload());
+
+                if( !$this.useStreamSaver()
+                    && !window.filesender.config.useFileSystemWritableFileStreamForDownload())
+                {
+                    // no streaming method is available to use!
+                    window.filesender.log("ERROR can not use any streaming tech to download into a zip file!");
+                    return;
+                }
+                                                     
+                
+                blobSinkStreamed = window.filesender.archive_sink( $this, link, transferid, archiveName, pass, selectedFiles, callbackError );
+                blobSink = blobSinkStreamed;
+                blobSink.init()
+                    .then( () => {
+                        blobSink.progress = progress;
+                        blobSink.onOpen   = onFileOpen;
+                        blobSink.onClose  = onFileClose;
+                        blobSink.onComplete = onComplete;
+                        
+                        // start downloading.
+                        blobSink.downloadNext();
+                    })
+                    .catch( e => {
+                        callbackError(e);
+                    });
+
+                
                 
             }, function(){
                 window.filesender.ui.notify('info', window.filesender.config.language.file_encryption_need_password);
@@ -1352,7 +1430,15 @@ window.filesender.crypto_app = function () {
 
             // Add a field to the prompt
             var trshowhide = window.filesender.config.language.file_encryption_show_password;
+            if( window.filesender.crypto_last_password_succeeded ) {
+                $('<p>' + lang.tr('previous_password_shown_for_next_action').out() + '</p>').appendTo(prompt);
+            }            
             var input = $('<input id="dlpass" type="password" class="wide" autocomplete="new-password" />').appendTo(prompt);
+            if( window.filesender.crypto_last_password_succeeded ) {
+                input.attr("value", window.filesender.crypto_last_password );
+            }
+            window.filesender.crypto_last_password_succeeded = false;
+
             var toggleView = $('<br/><input type="checkbox" id="showdlpass" name="showdlpass" value="false"><label for="showdlpass">' + trshowhide + '</label>');
             prompt.append(toggleView);
             $('#showdlpass').on(

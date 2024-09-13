@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <?php
-    $headerclass = "header";
+include_once "vidattr.php";
+
+$headerclass = "header";
 
     try {
         if (Auth::isAuthenticated()) {
@@ -19,6 +21,9 @@
         // nothing to do on failure
     }
 
+
+
+
 ?>
 
 <html xmlns="http://www.w3.org/1999/xhtml" lang="<?php echo Lang::getCode() ?>" xml:lang="<?php echo Lang::getCode() ?>">
@@ -35,7 +40,7 @@
         
         <script type="text/javascript" src="{path:filesender-config.js.php}"></script>
         
-        <script type="text/javascript" src="{path:rest.php/lang?callback=lang.setTranslations}"></script>
+        <script type="text/javascript" src="{path:rest.php/lang?callback=lang.setTranslations<?php echo $vidattr ?>}"></script>
         
         <meta name="robots" content="noindex, nofollow" />
         
@@ -48,7 +53,6 @@
             <div id="<?php echo $headerclass; ?>">
                 <a href="<?php echo GUI::path() ?>">
                     <?php GUI::includeLogo() ?>
-                    
                     <?php if(Config::get('site_name_in_header')) { ?>
                     <div class="site_name"><?php echo Config::get('site_name') ?></div>
                     <div class="site_baseline"><?php echo Config::get('site_baseline') ?></div>
@@ -63,9 +67,15 @@
                             echo '       <ul>';
                             $opts = array();
                             $code = Lang::getCode();
+                            $prevname = null;
+                            
                             foreach(Lang::getAvailableLanguages() as $id => $dfn) {
                                 $selected = ($id == $code) ? 'selected="selected"' : '';
+                                if( $prevname && $prevname == $dfn['name'] ) {
+                                    continue;
+                                }
                                 $opts[] = '<option value="'.$id.'" '.$selected.'>'.Utilities::sanitizeOutput($dfn['name']).'</option>';
+                                $prevname = $dfn['name'];
                             }
                         
                             echo '<li><label>'.Lang::tr('user_lang').'</label><select id="language_selector">'.implode('', $opts).'</select></li>';

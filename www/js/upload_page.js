@@ -71,6 +71,27 @@ function useWebNotifications()
 }
 
 
+function getOption( n )
+{
+    var ret = (n in filesender.ui.nodes.options) ? filesender.ui.nodes.options[n].is(':checked') : false;
+    return ret;
+}
+
+
+function getGuestOption( n )
+{
+    var auth = $('body').attr('data-auth-type');
+    if(auth == 'guest') {
+        return filesender.ui.guest_options[n];
+    }
+    return false;
+}
+
+
+
+
+
+
 /**
  * apply a 'bad' class to the obj if b==true
  * the useExplicitGoodClass can be set to true and a 'good' css class 
@@ -180,7 +201,7 @@ filesender.ui.elements.preventEmpty = function(el) {
     el.on( 'focus', function(e) { originalValue = e.target.value; } );
     el.on( 'blur',  function(e) {
         if( e.target.value == '' ) {
-            e.target.value = originalValue;
+            filesender.ui.setDateFromEpochData( filesender.ui.nodes.expires );
         }
     });
     return this;
@@ -216,16 +237,27 @@ filesender.ui.files = {
     addList: function(files, source_node) {
         var node = null;
         for(var i=0; i<files.length; i++) {
-            var latest_node = filesender.ui.files.addFile(files[i].name, files[i], source_node);
+            var file_name = files[i].name;
+            if(typeof files[i].webkitRelativePath === "string"
+               && files[i].webkitRelativePath != "" )
+            {
+                file_name = files[i].webkitRelativePath;
+            }
+            
+            var latest_node = filesender.ui.files.addFile(file_name, files[i], false, source_node);
             if (latest_node) {
                 node = latest_node;
             }
         }
+        
+        filesender.ui.evalUploadEnabled();
+        filesender.ui.nodes.files.list.scrollTop(filesender.ui.nodes.files.list.prop('scrollHeight'));
+        
         this.sortErrorLinesToTop();
         return node;
     },
     
-    addFile: function(filepath, fileblob, source_node) {
+    addFile: function(filepath, fileblob, isSingleOperation, source_node) {
         var filesize = fileblob.size;
         var node = null;
             var info = filepath + ' : ' + filesender.ui.formatBytes(filesize);
@@ -307,8 +339,10 @@ filesender.ui.files = {
                 
                 if(added_cid === false) return node;
             }
-                
-            filesender.ui.evalUploadEnabled();
+
+            if( isSingleOperation ) {
+                filesender.ui.evalUploadEnabled();
+            }
             node.attr('data-cid', added_cid);
 
             var bar = $('<div class="progressbar" />').appendTo(node);
@@ -378,7 +412,9 @@ filesender.ui.files = {
             
             node.attr('index', filesender.ui.transfer.files.length - 1);
         
-        filesender.ui.nodes.files.list.scrollTop(filesender.ui.nodes.files.list.prop('scrollHeight'));
+        if( isSingleOperation ) {
+            filesender.ui.nodes.files.list.scrollTop(filesender.ui.nodes.files.list.prop('scrollHeight'));
+        }
         
         return node;
     },
@@ -1052,6 +1088,7 @@ filesender.ui.cancelAutomaticResume = function() {
 
 filesender.ui.startUpload = function() {
 
+    window.filesender.ui.uploading = true;
     this.transfer.encryption = filesender.ui.nodes.encryption.toggle.is(':checked'); 
     this.transfer.encryption_password = filesender.ui.nodes.encryption.password.val();
     this.transfer.disable_terasender = filesender.ui.nodes.disable_terasender.is(':checked');
@@ -1069,7 +1106,7 @@ filesender.ui.startUpload = function() {
     }
     window.filesender.pbkdf2dialog.setup(!can_use_terasender);
     window.filesender.pbkdf2dialog.reset();
-    
+
     if(!filesender.ui.nodes.required_files) {
         this.transfer.expires = filesender.ui.nodes.expires.datepicker('getDate').getTime() / 1000;
         
@@ -1113,7 +1150,7 @@ filesender.ui.startUpload = function() {
     this.transfer.aup_checked = false;
     if(filesender.ui.nodes.aup.length)
         this.transfer.aup_checked = filesender.ui.nodes.aup.is(':checked');
-    
+
     if( filesender.config.upload_display_per_file_stats ) {
         window.setInterval(function() {
             if( !window.filesender.pbkdf2dialog.already_complete ) {
@@ -1132,15 +1169,22 @@ filesender.ui.startUpload = function() {
     
     this.transfer.oncomplete = function(time) {
 
+        window.filesender.ui.uploading = false;       
         filesender.ui.files.clear_crust_meter_all();
         window.filesender.pbkdf2dialog.ensure_onPBKDF2AllEnded();
-        
+
+        var usp = new URLSearchParams(window.location.search);
+        var reditectargs = [];
+        if( usp.has('vid')) {
+            reditectargs['vid'] = usp.get('vid');
+        }
         var redirect_url = filesender.ui.transfer.options.redirect_url_on_complete;
+        
         if(redirect_url) {
-            filesender.ui.redirect(redirect_url);
+            filesender.ui.redirect(redirect_url,reditectargs);
             
             window.setTimeout(function(f) {
-                filesender.ui.redirect(redirect_url);
+                filesender.ui.redirect(redirect_url,reditectargs);
                 filesender.ui.alert('success', lang.tr('done_uploading_redirect').replace({url: redirect_url}));
             }, 5000);
                     
@@ -1149,11 +1193,12 @@ filesender.ui.startUpload = function() {
         
         var close = function() {
             window.filesender.notification.clear();
-            filesender.ui.goToPage(
-                filesender.ui.transfer.guest_token ? 'home' : 'transfers',
-                null,
-                filesender.ui.transfer.guest_token ? null : 'transfer_' + filesender.ui.transfer.id
-            );
+            if( filesender.ui.transfer.guest_token ) {
+                filesender.ui.goToPage( 'home', null, null );
+            } else {
+                filesender.ui.goToPage( 'transfers', reditectargs,
+                                        'transfer_' + filesender.ui.transfer.id );
+            }
         };
 
         var p = filesender.ui.alert('success', lang.tr('done_uploading'), close);
@@ -1389,6 +1434,9 @@ $(function() {
 
     // start out asking user for a password
     filesender.ui.transfer.encryption_password_version = crypto.crypto_password_version_constants.v2018_text_password;
+
+    // initial value
+    filesender.ui.guest_options = [];
     
     // Register frequently used nodes
     filesender.ui.nodes = {
@@ -1431,7 +1479,9 @@ $(function() {
         lang: form.find('input[name="lang"]'),
         aup: form.find('input[name="aup"]'),
         expires: form.find('input[name="expires"]'),
-        options: {},
+        options: {
+            hide_sender_email: form.find('input[name="hide_sender_email"]')
+        },
         buttons: {
             start: form.find('.buttons .start'),
             restart: form.find('.buttons .restart'),
@@ -1661,8 +1711,12 @@ $(function() {
             '.fieldcontainer[data-related-to="message"], .recipients,' +
             ' .fieldcontainer[data-option="add_me_to_recipients"],' +
             ' .fieldcontainer[data-option="email_me_copies"],' +
+            ' .fieldcontainer[data-option="verify_email_to_download"],' +
             ' .fieldcontainer[data-option="enable_recipient_email_download_complete"]'
         ).toggle(!choice);
+        form.find(
+            ' .fieldcontainer[data-option="hide_sender_email"]'
+        ).toggle(choice);
         filesender.ui.evalUploadEnabled();
     });
     
@@ -1760,9 +1814,9 @@ $(function() {
             filesender.ui.files.checkEncryptionPassword(filesender.ui.nodes.encryption.password, true );
         }
     });
+
     
     filesender.ui.nodes.encryption.generate.on('click', function() {
-
         var crypto = window.filesender.crypto_app();
         var encoded = crypto.generateRandomPassword();
         password = encoded.value;
@@ -1776,6 +1830,16 @@ $(function() {
         filesender.ui.evalUploadEnabled();
     });
 
+    if( filesender.config.encryption_mandatory_with_generated_password ) {
+        setTimeout( function() {
+            filesender.ui.nodes.encryption.use_generated.click();
+            filesender.ui.nodes.encryption.password.attr('type','text');
+            filesender.ui.nodes.encryption.use_generated.attr('disabled', 'disabled' )
+        }, 0 );
+    }
+    
+
+    
     filesender.ui.nodes.encryption.show_hide.on('change', function() {
         if (filesender.ui.nodes.encryption.show_hide.is(':checked')) {
             filesender.ui.nodes.encryption.password.attr('type','text');
@@ -1785,7 +1849,19 @@ $(function() {
         filesender.ui.nodes.encryption.password.stop().effect('highlight',{},500);
         return false;
     });
-    
+
+
+    function startUpload()
+    {
+        filesender.ui.switchToUloadingPageConfiguration();
+        filesender.ui.startUpload();
+        filesender.ui.nodes.buttons.start.addClass('not_displayed');
+        if(filesender.supports.reader) {
+            filesender.ui.nodes.buttons.pause.removeClass('not_displayed');
+            filesender.ui.nodes.buttons.reconnect_and_continue.removeClass('not_displayed');
+        }
+        filesender.ui.nodes.buttons.stop.removeClass('not_displayed');
+    }
     
     // Bind buttons
     filesender.ui.nodes.buttons.start.on('click', function() {
@@ -1794,14 +1870,28 @@ $(function() {
         
         if(filesender.ui.transfer.status == 'new' && $(this).filter('[aria-disabled="false"]')) {
 
-            filesender.ui.switchToUloadingPageConfiguration();
-            filesender.ui.startUpload();
-            filesender.ui.nodes.buttons.start.addClass('not_displayed');
-            if(filesender.supports.reader) {
-                filesender.ui.nodes.buttons.pause.removeClass('not_displayed');
-                filesender.ui.nodes.buttons.reconnect_and_continue.removeClass('not_displayed');
+            var auth = $('body').attr('data-auth-type');
+            if(auth == 'guest') {
+
+                // confirm that the upload is only intended to the voucher issuer.
+                if( getOption( 'add_me_to_recipients' )
+                    && !getGuestOption( 'can_only_send_to_me' )
+                    && !filesender.ui.transfer.recipients.length )
+                {
+                    filesender.ui.confirm(lang.tr('confirm_upload_add_to_recipients_with_no_explicit_address'),
+                                          function() { // ok
+                                              startUpload();
+                                          },
+                                          function() { // cancel
+                                          });
+                    
+                    // dailog will start the upload if the user confirms the action
+                    // so we fall through here.
+                    return false;
+                }
             }
-            filesender.ui.nodes.buttons.stop.removeClass('not_displayed');
+
+            startUpload();
         }
         return false;
     }).button({disabled: true});
@@ -1925,6 +2015,13 @@ $(function() {
     // Check if there is a failed transfer in tracker and if it still exists
     var failed = filesender.ui.transfer.isThereFailedInRestartTracker();
     var auth = $('body').attr('data-auth-type');
+
+    if(auth == 'guest') {
+        var goelement = $('#guest_options')[0];
+        const go = JSON.parse( goelement.value );
+        filesender.ui.guest_options = go;
+    }
+
     
     if(auth == 'guest') {
         var transfer_options = JSON.parse(form.find('input[id="guest_transfer_options"]').val());
@@ -2061,6 +2158,8 @@ $(function() {
             }
         }, {auth_prompt: false});
     }
+
+    
 });
 
 $('.instructions').on('click', function(){

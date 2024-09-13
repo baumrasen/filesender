@@ -4,6 +4,7 @@ $auditlogs = Config::get('auditlog_lifetime') > 0;
 
 $transfers_page = function($status) {
     $page_size = 15;
+    $display_page_num = 4;
 
     switch($status) {
         case 'available': $selector = Transfer::AVAILABLE_NO_ORDER; break;
@@ -24,11 +25,13 @@ $transfers_page = function($status) {
             $selector .= " AND id >= $idmin AND id <= $idmax ";
         }
     }
-    $senderemail_full_match = Utilities::arrayKeyOrDefault( $_GET, 'senderemail_full_match', '', FILTER_VALIDATE_BOOLEAN );
-    $senderemail = Utilities::arrayKeyOrDefault( $_GET, 'senderemail', '' );
+    $placeholders=array();
+    $senderemail_full_match = Utilities::arrayKeyOrDefault( $_POST, 'senderemail_full_match', '', FILTER_VALIDATE_BOOLEAN );
+    $senderemailUnsanitized = Utilities::arrayKeyOrDefault( $_POST, 'senderemail', '' );
+    $senderemail = Utilities::arrayKeyOrDefault( $_POST, 'senderemail', '', FILTER_SANITIZE_EMAIL );
     // if this is a full match then we can filter the email string.
     if( $senderemail_full_match ) 
-        $senderemail = Utilities::arrayKeyOrDefault( $_GET, 'senderemail', '', FILTER_VALIDATE_EMAIL );
+        $senderemail = Utilities::arrayKeyOrDefault( $_POST, 'senderemail', '', FILTER_VALIDATE_EMAIL );
     
     if( $status == 'search' ) {
         
@@ -36,20 +39,21 @@ $transfers_page = function($status) {
             // Note that we are using semi validated data from above
             // and that this is an admin only page, so hacking is less likely.
             if( $senderemail_full_match ) {
-                $selector .= " AND user_email = '$senderemail' ";
+                $selector .= " AND LOWER(user_email) = :senderemail ";
             } else {
-                if( substr_compare($senderemail, '%', 0, 1 )) {
+                if( substr_compare($senderemailUnsanitized, '%', 0, 1 )) {
                     $senderemail = '%'.$senderemail;
                 }
-                if( substr_compare($senderemail, '%', -1, 1 )) {
+                if( substr_compare($senderemailUnsanitized, '%', -1, 1 )) {
                     $senderemail = $senderemail.'%';
                 }
                 
-                $selector .= " AND user_email LIKE '$senderemail' ";
+                $selector .= " AND LOWER(user_email) LIKE :senderemail ";
             }
+            $placeholders[":senderemail"] = mb_strtolower($senderemail);
         } else {
             if( $senderemail_full_match ) {
-                if( strlen(Utilities::arrayKeyOrDefault( $_GET, 'senderemail', '' ))) {
+                if( strlen(Utilities::arrayKeyOrDefault( $_POST, 'senderemail', '', FILTER_SANITIZE_EMAIL ))) {
                     // the email didn't validate so show no search results.
                     $selector .= ' and id < 0 ';
                 }
@@ -63,14 +67,27 @@ $transfers_page = function($status) {
     // FIXME: move the code away from wanting to know the total.
     //       if the user has 1000 tuples do we really want to show 1000/15 direct page links
     //       or should we instead allow queries on timeframe etc.
-    $total_count = 100;
+    //
+    // At offset zero with no interesting selector info we just assume there
+    // are a bunch of results to avoid hitting the database for a count(*) right
+    // at the start (there are three views by default and couint(*) might do a
+    // seq scan to complete.
+    if( !$offset && !strstr($selector,' AND')) {
+        $total_count = $page_size * $display_page_num;
+    } else {
+        $total_count = Transfer::count(array(
+            'view'   => $trsort->getViewName(),
+            'where'  => $selector . $trsort->getWhereClause($selector)
+        ), $placeholders);
+    }
+    
     $entries = Transfer::all(array(
         'view'   => $trsort->getViewName(),
         'where'  => $selector . $trsort->getWhereClause($selector),
         'order'  => $trsort->getOrderByClause(),
         'count'  => $page_size,
         'offset' => $offset
-    ));
+    ), $placeholders);
     
     $navigation = '<div class="transfers_list_page_navigation">'."\n";
     $transfersort = Utilities::getGETparam('transfersort','');
@@ -90,10 +107,22 @@ $transfers_page = function($status) {
         $navigation .= '<a href="?s=admin&as=transfers&'.$status.'_tpo='.$po.'&transfersort='.$transfersort.$cgiminmax.'#'.$status.'_transfers"><span class="fa-stack"><i class="fa fa-square fa-stack-2x"></i><i class="fa fa-angle-left fa-stack-1x fa-inverse"></i></span></a>'."\n";
     }
     
-    $p = 1;
-    for($o=0; $o<$total_count; $o+=$page_size) {
+    $start_index = $offset - $page_size * $display_page_num;
+    if( $start_index < 0 ) {
+        $start_index = 0;
+    }
+    $p = ceil(($start_index+1) / $page_size);
+    $end_index = min($total_count, $offset + $page_size * ($display_page_num + 1));
+    for($o=$start_index; $o < $end_index; $o += $page_size)
+    {
         if($o >= $offset && $o < $offset + $page_size) {
             $navigation .= '<span>'.$p.'</span>'."\n";
+        } elseif($o < $offset - $page_size * $display_page_num ||
+                 $o >= $offset + $page_size * ($display_page_num + 1)) {
+            // nothing
+        } elseif( $o < $offset - $page_size * ($display_page_num - 1) ||
+                  $o >= $offset + $page_size * $display_page_num ) {
+            $navigation .= '<span>'.'...'.'</span>'."\n";
         } else {
             $navigation .= '<a href="?s=admin&as=transfers&'.$status.'_tpo='.$o.'&transfersort='.$transfersort.$cgiminmax.'#'.$status.'_transfers">'.$p.'</a>'."\n";
         }
@@ -151,29 +180,32 @@ if( $idmax == -1 ) {
 
 
 <?php
-$senderemail_full_match = Utilities::arrayKeyOrDefault( $_GET, 'senderemail_full_match', '', FILTER_VALIDATE_BOOLEAN );
-$senderemail = Utilities::arrayKeyOrDefault( $_GET, 'senderemail', '' );
-if( $senderemail_full_match ) 
-    $senderemail = Utilities::arrayKeyOrDefault( $_GET, 'senderemail', '', FILTER_VALIDATE_EMAIL );
-
+$senderemail_full_match = Utilities::arrayKeyOrDefault( $_POST, 'senderemail_full_match', '', FILTER_VALIDATE_BOOLEAN );
+$senderemail = Utilities::arrayKeyOrDefault( $_POST, 'senderemail', '' ); // we don't want to FILTER_SANITIZE_EMAIL here
 $senderemail_full_match_extra = '';
 if( $senderemail_full_match ) {
     $senderemail_full_match_extra = ' checked ';
 }
 echo "<p>{tr:search_transfer_by_sender_email_description}</p>\n";
 ?>
-<fieldset class="search">
-    <input id="senderemail_full_match" name="senderemail_full_match" type="checkbox" <?php echo $senderemail_full_match_extra ?>>  
-    <label id="senderemail_full_match_label" for="senderemail_full_match" >{tr:email_full_match_search}</label>
-</fieldset>
-<fieldset class="search">
-    <label for="senderemail" class="mandatory">{tr:sender_email_search}</label>
-    <input type="text" name="senderemail" size="60" value="<?php echo $senderemail ?>" />
-    <input type="button" name="idbuttonse" value="{tr:search}" />
-</fieldset>
+
+<form action="{path:?s=admin&as=transfers}" method="post">
+    <input type="hidden" name="s" value="admin" />
+    <fieldset class="search">
+        <fieldset class="search">
+            <input id="senderemail_full_match" name="senderemail_full_match" type="checkbox" <?php echo $senderemail_full_match_extra ?>>  
+            <label id="senderemail_full_match_label" for="senderemail_full_match" >{tr:email_full_match_search}</label>
+        </fieldset>
+        <fieldset class="search">
+            <label for="senderemail" class="mandatory">{tr:sender_email_search}</label>
+            <input type="text" name="senderemail" size="60" value="<?php echo $senderemail ?>" />
+            <input type="submit" value="{tr:search}">
+        </fieldset>
+</form>
+
+        
 <?php 
 $transfers_page('search');
-
 
 // available
 echo '<span id="available_transfers"></span>'."\n";
@@ -197,5 +229,6 @@ if($auditlogs) {
     
     $transfers_page('closed');
 }
+
 ?>
 <script type="text/javascript" src="{path:js/admin_transfers.js}"></script>

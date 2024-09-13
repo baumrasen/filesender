@@ -133,7 +133,8 @@ var terasender_worker = {
                 var startoffset = 1 * (chunkid * chunksz);
                 var endoffset   = 1 * (chunkid * chunksz + (1*this.crypto_app.upload_crypted_chunk_size)-1);
                 var legacyChunkPadding = 0;
-
+                oReq.setRequestHeader('X-FileSender-Encrypted-Archive-Download', job.crypto_encrypted_archive_download );
+                
                 //
                 // There are some extra things to do for streaming legacy type files
                 //
@@ -186,6 +187,11 @@ var terasender_worker = {
                     this.log("ts.worker executeJob(adjustments done) "
                              + " eoffset " + endoffset
                              + " padding " + padding );
+
+                    if( job.crypto_encrypted_archive_download_fileidlist ) {
+                        oReq.setRequestHeader('X-FileSender-Encrypted-Archive-Contents', job.crypto_encrypted_archive_download_fileidlist );
+                        job.crypto_encrypted_archive_download_fileidlist = '';
+                    }
                 }
                 
                 var brange = 'bytes=' + startoffset + '-' + endoffset;
@@ -337,25 +343,26 @@ var terasender_worker = {
         
         try {
 
-	    if (job.encryption) { //MD
-			var cryptedBlob = null;
-			var $this = this;
-			blobReader = window.filesender.crypto_blob_reader().createReader(blob, function(blob){});
-			blobReader.blobSlice = blob;
-			blobReader.readArrayBuffer(function(arrayBuffer){
-			    window.filesender.crypto_app().encryptBlob(
-                                arrayBuffer,
-                                job.chunk.id,
-                                job.encryption_details,
-                                function (encrypted_blob) {
-				    xhr.setRequestHeader('X-Filesender-Encrypted', '1');
-				    xhr.send(encrypted_blob);
-				},
-                                function (e) { $this.error(e); } );
-			});
-		} else {
-			xhr.send(blob);
-		}
+	    if (!job.encryption) {
+                xhr.send(blob);
+	    } else {
+		var cryptedBlob = null;
+		var $this = this;
+		blobReader = window.filesender.crypto_blob_reader().createReader(blob, function(blob){});
+		blobReader.blobSlice = blob;
+		blobReader.arrayBuffer().then( function (arrayBuffer)  {
+
+		    window.filesender.crypto_app().encryptBlob(
+                        arrayBuffer,
+                        job.chunk.id,
+                        job.encryption_details,
+                        function (encrypted_blob) {
+			    xhr.setRequestHeader('X-Filesender-Encrypted', '1');
+			    xhr.send(encrypted_blob);
+			},
+                        function (e) { $this.error(e); } );
+                });
+	    }
             
         } catch(err) {
             this.error({message: 'source_file_not_available', details: {job: this.job}});

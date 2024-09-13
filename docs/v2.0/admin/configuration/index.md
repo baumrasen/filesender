@@ -31,6 +31,13 @@ A note about colours;
 * [mime_type_default](#mime_type_default)
 * [service_aup_min_required_version](#service_aup_min_required_version)
 * [tmp_path](#tmp_path)
+* [site_css](#site_css)
+* [site_logo](#site_logo)
+* [download_verification_code_enabled](#download_verification_code_enabled)
+* [download_verification_code_valid_duration](#download_verification_code_valid_duration)
+* [download_verification_code_random_bytes_used](#download_verification_code_random_bytes_used)
+* [download_show_download_links](#download_show_download_links)
+
 
 ## Security settings
 * [use_strict_csp](#use_strict_csp)
@@ -46,6 +53,9 @@ A note about colours;
 * [crypto_crypt_name](#crypto_crypt_name)
 * [upload_crypted_chunk_padding_size](#upload_crypted_chunk_padding_size)
 * [upload_crypted_chunk_size](#upload_crypted_chunk_size)
+* [cookie_domain](#cookie_domain)
+* [rate_limits](#rate_limits) (rate limits for some actions)
+* [valid_filename_regex](#valid_filename_regex)
 
 
 ## Backend storage
@@ -57,9 +67,24 @@ A note about colours;
 * [storage_filesystem_tree_deletion_command](#storage_filesystem_tree_deletion_command)
 * [storage_usage_warning](#storage_usage_warning)
 * [storage_filesystem_hashing](#storage_filesystem_hashing)
+* [storage_filesystem_per_day_buckets](#storage_filesystem_per_day_buckets)
+* [storage_filesystem_per_hour_buckets](#storage_filesystem_per_hour_buckets)
+* [storage_filesystem_per_day_max_age_to_create_directory](#storage_filesystem_per_day_min_age_to_create_directory)
+* [storage_filesystem_per_day_min_days_to_clean_empty_directories](#storage_filesystem_per_day_min_days_to_clean_empty_directories)
+* [storage_filesystem_per_day_max_days_to_clean_empty_directories](#storage_filesystem_per_day_max_days_to_clean_empty_directories)
 * [storage_filesystem_ignore_disk_full_check](#storage_filesystem_ignore_disk_full_check)
 * [storage_filesystem_external_script](#storage_filesystem_external_script)
+* [cloud_s3_region](#cloud_s3_region)
+* [cloud_s3_version](#cloud_s3_version)
+* [cloud_s3_endpoint](#cloud_s3_endpoint)
+* [cloud_s3_key](#cloud_s3_key)
+* [cloud_s3_secret](#cloud_s3_secret)
+* [cloud_s3_use_path_style_endpoint](#cloud_s3_use_path_style_endpoint)
 * [cloud_s3_bucket](#cloud_s3_bucket)
+* [cloud_s3_use_daily_bucket](#cloud_s3_use_daily_bucket)
+* [cloud_s3_bucket_prefix](#cloud_s3_bucket_prefix)
+* [cloud_s3_bulk_delete](#cloud_s3_bulk_delete)
+* [cloud_s3_bulk_size](#cloud_s3_bulk_size)
 
 ## Shredding
 
@@ -96,6 +121,7 @@ A note about colours;
 * [email_use_html](#email_use_html)
 * [email_newline](#email_newline)
 * [email_headers](#email_headers)
+* [email_send_with_minus_r_option](#email_send_with_minus_r_option)
 * [relay_unknown_feedbacks](#relay_unknown_feedbacks)
 * [translatable_emails_lifetime](#translatable_emails_lifetime)
 
@@ -115,6 +141,17 @@ A note about colours;
 * [crypto_pbkdf2_dialog_custom_webasm_delay](#crypto_pbkdf2_dialog_custom_webasm_delay)
 * [upload_page_password_can_not_be_part_of_message_handling](#upload_page_password_can_not_be_part_of_message_handling)
 * [user_page](#user_page)
+* [allow_pages_core](#allow_pages_core)
+* [allow_pages_add_for_guest](#allow_pages_add_for_guest)
+* [allow_pages_add_for_user](#allow_pages_add_for_user)
+* [allow_pages_add_for_admin](#allow_pages_add_for_admin)
+* [can_view_statistics](#can_view_statistics)
+* [can_view_aggregate_statistics](#can_view_aggregate_statistics)
+* [auth_sp_saml_can_view_statistics_entitlement](#auth_sp_saml_can_view_statistics_entitlement)
+* [auth_sp_saml_can_view_aggregate_statistics_entitlement](#auth_sp_saml_can_view_aggregate_statistics_entitlement)
+* [read_only_mode](#read_only_mode)
+
+
 
 ## Transfers
 
@@ -138,8 +175,11 @@ A note about colours;
 * [user_quota](#user_quota)
 * [max_transfer_file_size](#max_transfer_file_size)
 * [max_transfer_encrypted_file_size](#max_transfer_encrypted_file_size)
+* [disable_directory_upload](#disable_directory_upload)
+* [directory_upload_button_enabled](#directory_button_upload_enabled)
 * [encryption_enabled](#encryption_enabled)
 * [encryption_mandatory](#encryption_mandatory)
+* [encryption_mandatory_with_generated_password](#encryption_mandatory_with_generated_password)
 * [encryption_min_password_length](#encryption_min_password_length)
 * [encryption_password_must_have_upper_and_lower_case](#encryption_password_must_have_upper_and_lower_case)
 * [encryption_password_must_have_numbers](#encryption_password_must_have_numbers)
@@ -161,11 +201,15 @@ A note about colours;
 * [streamsaver_on_edge](#streamsaver_edge)
 * [streamsaver_on_safari](#streamsaver_safari)
 * [recipient_reminder_limit](#recipient_reminder_limit)
+* [log_authenticated_user_download_by_ensure_user_as_recipient](#log_authenticated_user_download_by_ensure_user_as_recipient)
+* [transfer_automatic_reminder](#transfer_automatic_reminder)
+* [transfers_table_show_admin_full_path_to_each_file](#transfers_table_show_admin_full_path_to_each_file)
 
 ## Graphs
 
 * [upload_graph_bulk_display](#upload_graph_bulk_display)
 * [upload_graph_bulk_min_file_size_to_consider](#upload_graph_bulk_min_file_size_to_consider)
+* [upload_graph_use_cache_table](#upload_graph_use_cache_table)
 
 ## TeraSender (high speed upload module)
 
@@ -214,7 +258,8 @@ A note about colours;
 	* [auth_sp_saml_uid_attribute](#auth_sp_saml_uid_attribute)
 	* [auth_sp_saml_entitlement_attribute](#auth_sp_saml_entitlement_attribute)
 	* [auth_sp_saml_admin_entitlement](#auth_sp_saml_admin_entitlement)
-        * [using_local_saml_dbauth](#using_local_saml_dbauth)
+    * [using_local_saml_dbauth](#using_local_saml_dbauth)
+    * [auth_warn_session_expired](#auth_warn_session_expired)
 * __Shibboleth__
 	* [auth_sp_shibboleth_uid_attribute](#auth_sp_shibboleth_uid_attribute)
 	* [auth_sp_shibboleth_email_attribute](#auth_sp_shibboleth_email_attribute)
@@ -238,18 +283,22 @@ A note about colours;
 * [statlog_log_user_additional_attributes](#statlog_log_user_additional_attributes)
 * [auth_sp_fake_additional_attributes_values](#auth_sp_fake_additional_attributes_values)
 * [auditlog_lifetime](#auditlog_lifetime)
+* [ratelimithistory_lifetime](#ratelimithistory_lifetime)
 * [report_format](#report_format)
 * [exception_additional_logging_regex](#exception_additional_logging_regex)
 * [clientlogs_stashsize](#clientlogs_stashsize)
 * [clientlogs_lifetime](#clientlogs_lifetime)
 * [logs_limit_messages_from_same_ip_address](#logs_limit_messages_from_same_ip_address)
 * [trackingevents_lifetime](#trackingevents_lifetime)
+* [client_ip_key](#client_ip_key)
+* [exception_skip_logging](#exception_skip_logging)
 
 ## Webservices API
 
 * [auth_remote_application_enabled](#auth_remote_application_enabled)
 * [auth_remote_signature_algorithm](#auth_remote_signature_algorithm)
 * [auth_remote_applications](#auth_remote_applications)
+* [auth_remote_user_enabled](#auth_remote_user_enabled)
 * [auth_remote_user_autogenerate_secret](#auth_remote_user_autogenerate_secret)
 * [rest_allow_jsonp](#rest_allow_jsonp)
 
@@ -264,6 +313,7 @@ A note about colours;
 
 * [host_quota](#host_quota)
 * [config_overrides](#config_overrides) (experimental feature, not tested)
+* [auth_config_regex_files](#auth_config_regex_files)
 
 ## Data Protection
 
@@ -334,8 +384,8 @@ A note about colours;
 * __available:__ since version 2.0
 * __1.x name:__
 * __comment:__ Testing, ticket #1198
-* __comment:__ Be careful to include the entire URL path, like `http://yourdomain.dom/`!
-* __comment:__ When do you set this?  If you use SimpleSAMLphp for authentication there is one common scenario where you need to set this parameter: the URL space for your FileSender instance and your SimpleSAMLphp instance do not overlap.  This happens when you have multiple FileSender instances (one production, one beta) sharing the same SimpleSAMLphp installation. For example: `http://yourdomain.dom/filesender-beta` and `http://yourdomain.dom/simplesamlphp`.  Because SimpleSAMLphp and FileSender are both written in PHP they use the same mechanism for session identifiers.  They can share session identifiers but only if this is allowed by the session_cookie_path.  When you log on with SimpleSAMLphp a session identifier is created.  If this can not be shared with your FileSender instance you will notice a user can log on, only to be presented with the same logon form again.  A silent failure.  In this scenario you will either need to ensure your SimpleSAMLphp instance is available within the FileSender URL space, or you set the session cookie parameter to for example `http://yourdomain.dom/`.  Another workaround is to use memcache for SimpleSAMLphp's session identifiers but that would mean an extra package on your server.
+* __comment:__ Be careful to include the entire URL path, like `https://example.org/`!
+* __comment:__ When do you set this?  If you use SimpleSAMLphp for authentication there is one common scenario where you need to set this parameter: the URL space for your FileSender instance and your SimpleSAMLphp instance do not overlap.  This happens when you have multiple FileSender instances (one production, one staging) sharing the same SimpleSAMLphp installation. For example: `https://example.org/filesender-staging` and `https://example.org/simplesamlphp`.  Because SimpleSAMLphp and FileSender are both written in PHP they use the same mechanism for session identifiers.  They can share session identifiers but only if this is allowed by the session_cookie_path.  When you log on with SimpleSAMLphp a session identifier is created.  If this can not be shared with your FileSender instance you will notice a user can log on, only to be presented with the same logon form again.  A silent failure.  In this scenario you will either need to ensure your SimpleSAMLphp instance is available within the FileSender URL space, or you set the session cookie parameter to for example `https://example.org/`.  Another workaround is to use memcache for SimpleSAMLphp's session identifiers but that would mean an extra configuration work and an extra package and process to manage on your server.
 
 ### default_timezone
 
@@ -372,7 +422,41 @@ A note about colours;
 * __default:__ $config['site_url'].'?s=logout'
 * __available:__ since version 1.6
 
+### download_verification_code_enabled
 
+* __description:__ Check that the user has access to their email address by sending a one time code to them and requiring them to enter that code before they can download files in a transfer. This is restricted to checking only users who have not logged in to the system.
+* __mandatory:__ no.
+* __type:__ bool
+* __default:__ false
+* __available:__ since version 2.41
+
+
+### download_verification_code_valid_duration
+
+* __description:__ how long a verify by email code should be valid for (in seconds).
+* __mandatory:__ no.
+* __type:__ int
+* __default:__ 60*15
+* __available:__ since version 2.41
+* __comment:__ Default should be ok.
+
+### download_verification_code_random_bytes_used
+
+* __description:__ how many random bytes to use in the download verification code
+* __mandatory:__ no.
+* __type:__ int
+* __default:__ 8
+* __available:__ since version 2.41
+* __comment:__ Default should be ok.
+
+### download_show_download_links
+
+* __description:__ show direct download urls on download page
+* __mandatory:__ no.
+* __type:__ bool
+* __default:__ false
+* __available:__ since version 2.42
+* __comment:__ Default should be ok.
 
 
 
@@ -434,6 +518,26 @@ A note about colours;
 * __comment:__ Only some code has been migrated to using this configuration setting. It is intended to be a location that files might be temporarily stored while processing is happening.
 
 
+### site_css
+
+* __description:__ An additional css file to load after system ones to allow css updates by the admin. One might consider using this with the auth_config_regex_files option to change the look of a site depending on its use.
+* __mandatory:__ no
+* __type:__ string
+* __default:__ ''
+* __available:__ since version 2.40
+* __comment:__  This will be taken relative to the css/ directory automatically.
+
+### site_logo
+
+* __description:__ An additional logo image to use. One might consider using this with the auth_config_regex_files option to change the look of a site depending on its use.
+* __mandatory:__ no
+* __type:__ string
+* __default:__ ''
+* __available:__ since version 2.40
+* __comment:__  Note that this is relative to the www directory. So you might want to add the prefix images/ or skin/ depending on how your system is set up to find the image.
+
+
+
 
 
 
@@ -491,6 +595,33 @@ A note about colours;
                The mime AV program takes an array of MIME types that the content MUST be in using the matchlist parameter.
                The mime AV program defaults to using the first 8k of content to determine the MIME type, use bytesToConsider
                to change this. Setting bytesToConsider to values below 8k will have no effect.
+
+               Note that these programs are only executed when you run execute-av-program-on-files.php on the server. 
+               The execute-av-program-on-files.php script needs permissions to access to the uploaded files and the database.
+               The execute-av-program-on-files.php script will work on a small batch of files and sleep 10 seconds and then
+               work on the next batch of files. It may be that the script needs to be improved for larger sites to allow many
+               machines to access and perform these tasks as they can be time consuming depending on the scanner.
+
+               The expected setup will use virus scanners over https passing the file stream to the scanner and retrieving the
+               results of that scan to store in the database. An example of this is provided in
+               classes/avprograms/AVProgramURLTest.php. The AVProgramURLTest.php can be installed on a web server and will
+               fail for content that contains a bad word which in this case is literally "badword". The AVProgramURLTest is
+               provided as an example that can be fleshed out to use other malware scanners as an installation desires.
+
+               If you are using the 'url' method then FileSender will post file content to that URL and expect an JSON result
+               indicating the result of the scan. For example for a success:
+               { "passes": "1", "error": "0", "reason": "clean." }
+               or something like the following or for an error:
+               { "passes": "0", "error": "0", "reason": "contains a Trojan (56% certainty)." }
+               or if the scanner itself encountered an error:
+               { "passes": "0", "error": "1", "reason": "unable to use local database to compare data with." }.
+
+               From an implementation perspective, results are recorded in the AVResults table and the download page will
+               display the results of scans if they are available.
+
+               
+
+
 
 ```
 $config['avprogram_list'] = array( 'always_pass',
@@ -597,6 +728,79 @@ This way the encryption_key_version_new_files can be updated and existing upload
            needed for an encrypted chunk that is uploaded (not the encrypted content itself).
 
 
+### cookie_domain
+* __description:__ Optionally allow the cookie_domain to be set for new cookies.
+* __mandatory:__ no
+* __type:__ string
+* __default:__ ''
+* __available:__ since version 2.33
+* __comment:__ It is highly recommended that you leave this setting as the default value which will be unset. The default will mean "If omitted, this attribute defaults to the host of the current document URL, not including subdomains.". This setting is here to allow a deployment to set a value like filesender.example.com to allow all subdomains from that domain to also see the cookie if desired.   https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#domaindomain-value
+
+
+### rate_limits
+* __description:__ Some actions have hard or soft limits that can be applied. For example, actions that result in sending an email may have a soft limit that will perform the action but not send an email after the nominated number of actions is performed per time period. This allows for the system to prevent a nefarious guest from sending too many emails. The database table ratelimithistorys is used to track the information needed for this option. The time period for actions performed used for the initial implementation is 24 hours. For example, with the right setting you can not create more than 200 guests in a 24 hour block of time. There are two types of limits, hard and soft. A hard limit will be checked before performing an action and if the limit is already reached the action will not be performed. For example, creating a guest or sending a transfer_reminder is a hard limit. This is because creating a guest may require sending an email to be performed so it is not useful to try to perform the action if the rate limit is already reached. Some actions are soft limits such as guest_upload_start and will only effect the sending of an email. For the guest_upload_start example, if the limit is 30 per day then a guest may start an upload 1000 times and you will only receive emails for the first 30 attempts. This way the system remains functional but does not try to produce excessive emails while it is performing that function. In general a soft limit is to protect against excessive email but not to limit the use of the system itself.
+* __mandatory:__ no
+* __type:__ array
+* __default:__ '$config['rate_limits'] = array(
+            'email' => array(
+            'guest_created'      => array( 'day' => 100 ),
+            'report_inline'      => array( 'day' => 100 ),
+            'transfer_reminder'  => array( 'day' => 100 ),
+            'download_complete'  => array( 'day' => 500 ),
+            'files_downloaded'   => array( 'day' => 500 ),
+            'guest_upload_start' => array( 'day' => 100 ),
+            'transfer_available' => array( 'day' => 500 ),
+        ),
+    );'
+* __available:__ since version 2.33
+* __1.x name:__
+* __comment:__ For current defaults see https://github.com/search?q=repo%3Afilesender%2Ffilesender+rate_limits+path%3Aincludes
+* __*Standard parameters for all options:*__
+	* __day__(integer): The number of times this action can be performed per day.
+ed off by the user.
+* __*Available options:*__
+	* __guest\_created:__ hard limit
+	* __report\_inline:__ hard limit
+	* __transfer\_reminder:__ hard limit
+	* __download\_complete:__ soft limit
+	* __files\_downloaded:__ soft limit
+	* __guest\_upload\_start:__ soft limit
+	* __transfer\_available:__ soft limit
+
+* __*Configuration example:*__
+
+$config['rate_limits'] = array(
+        'email' => array(
+            'guest_created'      => array( 'day' => 30 ),
+            'report_inline'      => array( 'day' => 20 ),
+            'transfer_reminder'  => array( 'day' => 15 ),
+            'download_complete'  => array( 'day' => 300 ),
+            'files_downloaded'   => array( 'day' => 100 ),
+            'guest_upload_start' => array( 'day' => 50 ),
+            'transfer_available' => array( 'day' => 200 ),
+        ),
+);
+
+
+### valid_filename_regex
+* __description:__ Regular exression that must match a file name in an upload for that file to be allowed
+* __mandatory:__ no
+* __type:__ string
+* __default:__ '^[ \\/\\p{L}\\p{N}_\\.,;:!@#$%^&*)(\\]\\[_-]+'
+* __available:__ since version 2.0
+* __comment:__ You may wish to allow more characters to this
+               expression to allow emoji in file names for example.
+               One might like to consider potential cases such as the
+               unicode U+2044 fraction slash which might be confused
+               with a / and U+205F which is a math space and might be
+               confused with a regular space. The ending '$' will be
+               added to match against the end of string for you.
+               
+* __*Configuration example:*__
+  //  adds '+' in ASCII
+  //  adds special character areas, for example MIDDLE DOT U+30FB
+$config['valid_filename_regex'] = '^['."\u{2010}-\u{2027}\u{2030}-\u{205F}\u{2070}-\u{FFEF}\u{10000}-\u{10FFFF}".' \\/\\p{L}\\p{N}_\\.,;:!@#$%^&*+)(\\]\\[_-]+';
+
 
 
 ---
@@ -614,6 +818,8 @@ This way the encryption_key_version_new_files can be updated and existing upload
 * __default:__ filesystem
 * __available:__ since version 2.0
 * __comment:__ each supported storage type will have a specific class defined in classes/storage.  Each is named Storage<Foo>.class.php, for example StorageFilesystem.class.php for the type filesystem.  The values for "Foo" are the permissible values for this directive. The primary choices for value are filesystem and filesystemChunked. Note that you need to respect the non leading capital letters in the class name such as the "C" in filesystemChunked. Future storage types could include e.g. **object**, **amazon_s3** and others.
+
+   If you are using cloud backed storage please also see the [cloud configuration page](https://docs.filesender.org/filesender/v2.0/cloud/).
 
 ### storage_filesystem_path
 
@@ -672,7 +878,61 @@ This way the encryption_key_version_new_files can be updated and existing upload
 * __available:__ since version 20
 * __1.x name:__
 * __comment:__ not tested
-* __comment:__ basically integer. use fileUID (which is used to create name on hard drive) + as many characters as the hashing value (if you set hashing to 2 you take the 2 first letters of the fileUID (big random string) and use these two characters to create a directory structure under the storage path. This avoids having all files in the same directory. If you set this to 1 you have 16 possible different values for the directory structure under the storage root. You'll have 16 folders under your storage root under which you'll have the files. This allows you to spread files over different file systems / hard drives. You can aggregate storage space without using things like LVM. If you set this to two you have 2 levels of subdirectories. For directory naming: first level, directory names has one letter. Second level has two: letter from upper level + own level. Temporary chunks are stored directly in the final file. No temp folder (!!) Benchmarking between writing small file in potentially huge directory and opening big file and seeking in it was negligable. Can just open final file, seek to location of chunk offset and write data. Removes need to move file in the end.  It can also be "callable". We call the function giving it the file object which hold all properties of the file. Reference to the transfer as well. The function has to return a path under the storage root. This is a path related to storage root. For example: if you want to store small files in a small file directory and big files in big directory. F.ex. if file->size < 100 MB store on fast small disk, if > 100 MB store on big slow disk. Can also be used for functions to store new files on new storage while the existing files remain on existing storage. Note: we need contributions for useful functions here :)
+* __comment:__ basically integer. use fileUID (which is used to create name on hard drive) + as many characters as the hashing value (if you set hashing to 2 you take the 2 first letters of the fileUID (big random string) and use these two characters to create a directory structure under the storage path. This avoids having all files in the same directory. If you set this to 1 you have 16 possible different values for the directory structure under the storage root. You'll have 16 folders under your storage root under which you'll have the files. This allows you to spread files over different file systems / hard drives. You can aggregate storage space without using things like LVM. If you set this to two you have 2 levels of subdirectories. For directory naming: first level, directory names has one letter. Second level has two: letter from upper level + own level. Temporary chunks are stored directly in the final file. No temp folder (!!) Benchmarking between writing small file in potentially huge directory and opening big file and seeking in it was negligible. Can just open final file, seek to location of chunk offset and write data. Removes need to move file in the end.  It can also be "callable". We call the function giving it the file object which hold all properties of the file. Reference to the transfer as well. The function has to return a path under the storage root. This is a path related to storage root. For example: if you want to store small files in a small file directory and big files in big directory. F.ex. if file->size < 100 MB store on fast small disk, if > 100 MB store on big slow disk. Can also be used for functions to store new files on new storage while the existing files remain on existing storage. Note: we need contributions for useful functions here :)
+
+
+### storage_filesystem_per_day_buckets
+
+* __description:__ Store files in a subdirectory based on the day they were created.
+* __mandatory:__ no
+* __type:__ **bool** 
+* __default:__ false
+* __available:__ since version 2.45
+* __comment:__ This requires version 7 UUIDs to be in use. The timestamp from the v7 uuid is taken and the seconds since midnight are removed and that is used to create a subdirectory for the stored files. See also storage_filesystem_per_hour_buckets. Note that this works with storage_filesystem_per_hour_buckets, if both are enabled then first a daily directory is made and then an hourly directory is created in the day directory and the files are stored in the hourly subdirectory. This will allow the number of entries in a directory to be controlled by a system administrator and the use of v7 uuid will also permit the kernel filesystem to better index entry lookup.
+
+
+
+### storage_filesystem_per_hour_buckets
+
+* __description:__ Store files in a subdirectory based on the hour they were created.
+* __mandatory:__ no
+* __type:__ **bool** 
+* __default:__ false
+* __available:__ since version 2.45
+* __comment:__ This requires version 7 UUIDs to be in use. The timestamp from the v7 uuid is taken and the seconds since the start of the hour are removed and that is used to create a subdirectory for the stored files. See also storage_filesystem_per_day_buckets for an overview of this feature.
+
+### storage_filesystem_per_day_max_age_to_create_directory
+
+* __description:__ Mostly internal use. Bucket directories are created automatically. This is the maximum number of days ago to create these subdirectory buckets.
+* __mandatory:__ no
+* __type:__ int
+* __default:__ 7
+* __available:__ since version 2.47
+* __comment:__ This is mostly for internal use and likely fine to leave at default. This prevents bucket subdirectories from being recreated if very old files are listed where the file content is already deleted by the cron job.
+
+### storage_filesystem_per_day_min_days_to_clean_empty_directories
+
+* __description:__ Mostly internal use. How many days ago the cron job starts to consider when looking for empty bucket directories to delete
+* __mandatory:__ no
+* __type:__ int
+* __default:__ -1 which means this is set to max_transfer_days_valid
+* __available:__ since version 2.47
+* __comment:__ This is mostly for internal use and likely fine to leave at default. 
+
+
+### storage_filesystem_per_day_max_days_to_clean_empty_directories
+
+* __description:__ Mostly internal use. How far back from storage_filesystem_per_day_min_days_to_clean_empty_directories to consider when trying to delete empty bucket directories
+* __mandatory:__ no
+* __type:__ int
+* __default:__ 150
+* __available:__ since version 2.47
+* __comment:__ This is mostly for internal use and likely fine to leave at default. 
+
+
+
+
+
 
 
 ### storage_filesystem_ignore_disk_full_check
@@ -694,6 +954,59 @@ This way the encryption_key_version_new_files can be updated and existing upload
 * __available:__ since before version 2.30
 * __comment:__ The script at the given path should perform similar read/write operations as the example external.py script to maintain the storage.
 
+### cloud_s3_region
+
+* __description:__ Optional name of the region configuration for the [s3 storage backend](https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/guide_configuration.html#cfg-region)
+* __mandatory:__ no.
+* __type:__ string
+* __default:__ 'us-east-1'
+* __available:__ since version 2
+* __comment:__ If you use a different s3 region from default, make sure to set this. Non-AWS implementations usually have this set to default.
+
+### cloud_s3_version
+
+* __description:__ Optional API version for the [s3 storage backend](https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/guide_configuration.html#cfg-version)
+* __mandatory:__ no.
+* __type:__ string
+* __default:__ 'latest' 
+* __available:__ since version 2 
+* __comment:__ If you use a different s3 API version from default, make sure to set this. AWS usually has this set to default.  
+
+### cloud_s3_endpoint
+
+* __description:__ Optional API endpoint for the [s3 storage backend](https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/guide_configuration.html#cfg-endpoint)
+* __mandatory:__ no.
+* __type:__ string
+* __default:__ 'http://localhost:8000'
+* __available:__ since version 2
+* __comment:__ The API endpoint that your S3 service can be reached at. For default AWS endpoints check [here](https://docs.aws.amazon.com/general/latest/gr/s3.html)
+
+### cloud_s3_key
+
+* __description:__ Authentication key ID for the [s3 storage backend](https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/guide_credentials_hardcoded.html)
+* __mandatory:__ no.
+* __type:__ string
+* __default:__ 'accessKey1'
+* __available:__ since version 2
+* __comment:__ The key ID associated with the [cloud_s3_secret](#cloud_s3_secret)
+
+### cloud_s3_secret
+
+* __description:__ Authentication secret key ID for the [s3 storage backend](https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/guide_credentials_hardcoded.html)
+* __mandatory:__ no.
+* __type:__ string
+* __default:__ 'verySecretKey1'
+* __available:__ since version 2
+* __comment:__ The secret key ID associated with the [cloud_s3_key](#cloud_s3_key)
+
+### cloud_s3_use_path_style_endpoint
+
+* __description:__ Choose to use a path style endpoint for the [s3 storage backend](https://docs.aws.amazon.com/aws-sdk-php/v3/api/class-Aws.S3.S3Client.html#__construct)
+* __mandatory:__ no.
+* __type:__ bool
+* __default:__ true
+* __available:__ since version 2
+* __comment:__ Set to true to send requests to an S3 path style endpoint. 
 
 ### cloud_s3_bucket
 
@@ -705,7 +1018,51 @@ This way the encryption_key_version_new_files can be updated and existing upload
 * __comment:__ If you wish to store all files in a single bucket set it's name in this configuration option.
 Ensure that the named bucket already exists if you use this setting.
 
+### cloud_s3_use_daily_bucket
 
+* __description:__ Enable filesender to use daily buckets for storing files.
+* __mandatory:__ no.  
+* __type:__ bool
+* __default:__ false
+* __available:__ since version 2.40
+* __comment:__ If you wish to store all files uploaded in a single day at one bucket, enable this option and
+optionally also set cloud_s3_bucket_prefix to define the prefix for daily buckets. Bucket names are formed by
+concatenating cloud_s3_bucket_prefix + YYYY-MM-DD, for example a prefix of "Test-" could create bucket "Test-2023-04-30".
+If cloud_s3_bucket and cloud_s3_use_daily_bucket are both set, this option takes precedence.
+Daily buckets are created/deleted by cron.php so ensure you have it configured in your crontab! If you wish
+to manually create the buckets (for example when first turning this setting on), run
+php scripts/task/S3bucketmaintenance.php --verbose
+
+### cloud_s3_bucket_prefix
+
+* __description:__ Optional prefix for S3 daily buckets.
+* __mandatory:__ no.  
+* __type:__ string
+* __default:__ ''
+* __available:__ since version 2.40
+* __comment:__ If cloud_s3_use_daily_bucket has been set, you can define the prefix for daily buckets with
+this option. Daily bucket names are formed by concatenating cloud_s3_bucket_prefix + YYYY-MM-DD,
+for example a prefix of "Test-" could create bucket "Test-2023-04-30". An empty prefix would create "2023-04-30".
+
+### cloud_s3_bulk_delete
+
+* __description:__ Toggle bulk delete or serial chunk delete
+* __mandatory:__ no.
+* __type:__ bool
+* __default:__ false
+* __available:__ since version 2.45
+* __comment:__ When deleting a file, this chooses between deleting one chunk per request, or sending a bulk request
+deleting up to [cloud_s3_bulk_size](#cloud_s3_bulk_size) chunks per request.
+
+### cloud_s3_bulk_size
+
+* __description:__ Maximum number of chunks to delete per bulk delete request
+* __mandatory:__ no.
+* __type:__ integer
+* __default:__ 1000
+* __available:__ since version 2.45
+* __comment:__ When [cloud_s3_bulk_delete](#cloud_s3_bulk_delete) is true, this is the maximum size of the delete request.
+Default value to maintain AWS S3 compatibility is 1000. Other storage platforms may use different defaults. OpenStack Swift defaults to 10000, for instance
 
 
 ---
@@ -732,7 +1089,7 @@ Ensure that the named bucket already exists if you use this setting.
 * __type:__ string
 * __default:__ nothing
 * __available:__ since version 2.0 beta 4
-* __comment:__ If this is set then file shredding will be enabled. See the [shredding page](http://docs.filesender.org/v2.0/shredding) for more information.
+* __comment:__ If this is set then file shredding will be enabled. See the [shredding page](https://docs.filesender.org/filesender/v2.0/shredding/) for more information.
 
 
 ---
@@ -804,13 +1161,14 @@ Ensure that the named bucket already exists if you use this setting.
 
 ### db_table_prefix
 
-* __description:__ table prefix to use.  Allows you to have several filesender instances in one database.  For example if you buy hosting with 1 database and still want multiple filesender instances.
-* __mandatory:__ <span style="background-color:orange">?  Would think not?</yes>
+* __description:__ This is known to have issues in 2.41 and is now deprecated. This feature will be removed in the 3.x release. table prefix to use.  Allows you to have several filesender instances in one database.  For example if you buy hosting with 1 database and still want multiple filesender instances.
+* __mandatory:__ no</yes>
 * __type:__ string
 * __default:__ -
 * __available:__ since version 2.0
 * __1.x name:__
-* __comment:__
+* __comment:__ 
+  Deprecated. This feature will be removed in the 3.x release
 
 
 ### db_driver_options
@@ -909,11 +1267,11 @@ User language detection is done in the following order:
 * __default:__ -
 * __available:__ since version 2.0
 * __1.x name:__
-* __comment:__ To be SPF compliant set this to an address like "filesender-bounces@yourdomain.dom" and use the bounce-handler script to deal with email bounces.
+* __comment:__ To be SPF compliant set this to an address like "filesender-bounces@example.org" and use the bounce-handler script to deal with email bounces.
 
 ### email_from_name
 
-* __description:__ pretty name for the email_from address.  Use when you explicitly set email_from to an email address like "no-reply@domain.dom".
+* __description:__ pretty name for the email_from address.  Use when you explicitly set email_from to an email address like "no-reply@example.org".
 * __mandatory:__ no
 * __type:__ string
 * __default:__ -
@@ -933,7 +1291,7 @@ User language detection is done in the following order:
 
 ### email_reply_to_name
 
-* __description:__  pretty name for the email_reply_to address.  Use when you explicitly set email_reply_to to an email address like "no-reply@domain.dom".
+* __description:__  pretty name for the email_reply_to address.  Use when you explicitly set email_reply_to to an email address like "no-reply@example.org".
 * __mandatory:__ no
 * __type:__ string
 * __default:__ -
@@ -949,7 +1307,7 @@ User language detection is done in the following order:
 * __default:__ -
 * __available:__ since version 2.0
 * __1.x name:__
-* __comment:__ To be SPF compliant set this to an address like "filesender-bounces@yourdomain.dom" and use the bounce-handler script to deal with email bounces.
+* __comment:__ To be SPF compliant set this to an address like "filesender-bounces@example.org" and use the bounce-handler script to deal with email bounces.
 
 ### email_subject_prefix
 
@@ -991,12 +1349,23 @@ User language detection is done in the following order:
 * __available:__ since version 2.x
 * __comment:__ E.g. add to your `$config['email_headers'] = array('Auto-Submitted' => 'auto-generated', 'X-Auto-Response-Suppress' => 'All');` to add these 2 headers with their respective values to all outgoing emails.
 
+
+### email_send_with_minus_r_option
+
+* __description:__ Use the -r option to mail() if return_path is set. This was the default behavior in all 2.x series released but the FileSender 2.41 release.
+* __mandatory:__ no
+* __type:__ boolean
+* __default:__ true
+* __available:__ since version 2.42
+* __comment:__ This may allow for FileSender in container installations to work where the -r option is not desired and can be turned off for that.
+
+
 ### relay_unknown_feedbacks
 
 * __description:__ tells the bounce handler where to forward those messages it can not identify as email bounces but can be related to a specific target (recipient, guest). The received message is forwarded as message/rfc822 attachment. Updated in 2.6.
 * __mandatory:__ no
 * __type:__ string or keyword
-* __permissible values:__ "sender": relay to recipient's transfer owner or guest owner. "admin": relay to admin email address. "support": relay to support_email (setting to this means that support_email must also be set), or "someaddress@domain.tld": an explicit email address to forward these types of mails to.
+* __permissible values:__ "sender": relay to recipient's transfer owner or guest owner. "admin": relay to admin email address. "support": relay to support_email (setting to this means that support_email must also be set), or "someaddress@example.org": an explicit email address to forward these types of mails to.
 * __default:__ "sender"
 * __available:__ since version 2.0
 * __1.x name:__
@@ -1151,7 +1520,84 @@ User language detection is done in the following order:
      For more possible values to include in the array see the second level keys in $infos on the templates/user_page.php file.
 
 
+### allow_pages_core
+* __description:__ The pages that should be available to all visitors before logging in. Note that if you include some pages such as transfers
+                   and the system requires the user to be logged in to view the page they will be redirected to login to view the page. The default
+                   value should be acceptable to most sites.
+* __mandatory:__ no
+* __type:__ array of values from GUIPages constants
+* __default:__ array( GUIPages::DOWNLOAD, GUIPages::TRANSLATE_EMAIL, GUIPages::LOGOUT, GUIPages::EXCEPTION, GUIPages::HELP, GUIPages::ABOUT, GUIPages::PRIVACY )
+* __available:__ since version 2.33
+* __comment:__ See also allow_pages_add_for_guest and allow_pages_add_for_user
 
+
+### allow_pages_add_for_guest
+* __description:__ These values will be added to the allow_pages_core pages if the principal is a guest
+* __mandatory:__ no
+* __type:__ array of values from GUIPages constants
+* __default:__ array( GUIPages::HOME, GUIPages::UPLOAD, GUIPages::APISECRETAUP )
+* __available:__ since version 2.33
+* __comment:__ See also allow_pages_core
+
+### allow_pages_add_for_user
+* __description:__ These values will be added to the allow_pages_core pages if the principal is an authenticated user (normal or admin). Note that GUIPages::USER will be removed if
+                you have set $config['user_page'] = null.
+* __mandatory:__ no
+* __type:__ array of values from GUIPages constants
+* __default:__ array( GUIPages::HOME, GUIPages::USER, GUIPages::UPLOAD, GUIPages::TRANSFERS, GUIPages::GUESTS, GUIPages::DOWNLOAD, GUIPages::APISECRETAUP )
+* __available:__ since version 2.33
+* __comment:__ See also allow_pages_core
+
+
+### allow_pages_add_for_admin
+* __description:__ These values will be added to the allow_pages_core pages if the principal is an authenticated admin. This will be in addition to the values from allow_pages_add_for_user.
+* __mandatory:__ no
+* __type:__ array of values from GUIPages constants
+* __default:__ array( GUIPages::ADMIN )
+* __available:__ since version 2.33
+* __comment:__ See also allow_pages_core
+
+
+### can_view_statistics
+* __description:__ Access to the statistics tab is governed by this setting which has similar format to the admin setting. This is a comma separated list of uids which will be matched against the saml_user_identification_uid column in the authentications table of the database. Normally this is the full email of the user who is logging in. You can also use the auth_sp_saml_can_view_statistics_entitlement and auth_sp_saml_can_view_aggregate_statistics_entitlement settings to enabled these features using attributes from SAML.
+* __mandatory:__ no
+* __type:__ string
+* __default:__ ""
+* __available:__ since version 2.8
+* __comment:__ See also can_view_aggregate_statistics, admin
+
+### can_view_aggregate_statistics
+* __description:__ Access to the statistics tab is governed by this setting which has similar format to the admin setting. This is a comma separated list of uids which will be matched against the saml_user_identification_uid column in the authentications table of the database. Normally this is the full email of the user who is logging in. You can also use the auth_sp_saml_can_view_statistics_entitlement and auth_sp_saml_can_view_aggregate_statistics_entitlement settings to enabled these features using attributes from SAML.
+* __mandatory:__ no
+* __type:__ string
+* __default:__ ""
+* __available:__ since version 2.8
+* __comment:__ See also can_view_statistics
+
+### auth_sp_saml_can_view_statistics_entitlement
+* __description:__  This is the name of an entitlement_attribute from the authentication session that will grant an authenticated user access to the statistics page. For full details see the Auth::isPrivilegeAllowed() method.
+* __mandatory:__ no
+* __type:__ string
+* __default:__ ""
+* __available:__ since version 2.8
+* __comment:__ See also can_view_statistics
+
+### auth_sp_saml_can_view_aggregate_statistics_entitlement
+* __description:__  This is the name of an entitlement_attribute from the authentication session that will grant an authenticated user access to the aggregate statistics page. For full details see the Auth::isPrivilegeAllowed() method.
+* __mandatory:__ no
+* __type:__ string
+* __default:__ ""
+* __available:__ since version 2.8
+* __comment:__ See also can_view_statistics
+
+
+### read_only_mode
+* __description:__  Do not allow new transfers and guests to be created.
+* __mandatory:__ no
+* __type:__ boolean
+* __default:__ false
+* __available:__ since version 2.48
+* __comment:__ If you are performing a major upgrade you might like to retain an original FileSender installation in read only mode so users can continue to download existing files and redirect visitors to a new site for new uploads. This may be useful for upgrading between major FileSender releases such as the 2.x series to the 3.x series and also for change in infrastructure such as moving to different disk pools or storage back ends.
 
 
 
@@ -1348,10 +1794,11 @@ If you want to find out the expiry timer for your SAML Identity Provider install
 	* __email\_recipient\_when\_transfer\_expires:__ As of release 2.21 this is a global default setting to email users when a transfer expires during cron execution. The default is true to maintain the previous functionality as it was. Setting this to false will not send out emails to intended recipients as transfers are expired by the cron job. This is set here because it may be able to be adjusted by a user in the UI in the future for each transfer.
 	* __enable\_recipient\_email\_download\_complete:__ this gives the downloader a tick box in the download window which in turn lets the downloader indicate they would like to receive an email once the download is finished.  If you want this option available for all downloaders and do not want to bother the uploader with it, simply configure it with 'default' => false as the only parameter. __Warning:__ if the recipient of a file is a mailinglist and someone ticks the "send me a message on download complete" box, then all members of that mailinglist will receive that message.  That might be a reason why you don't want to make this option available to your users.        
 	* __add\_me\_to\_recipients:__ include the sender as one of the recipients.
-	* __get\_a\_link:__ if checked it will not send any emails, only present the uploader with a download link once the upload is complete.  This is useful when sending files to mailinglists, newsletters etc.  When ticked the message subject and message text box disappear from the UI.  Under the hood it creates an anonymous recipient with a token for download.  You can se the download count, but not who downloaded it (obviously, as there are no recipients defined).
+	* __get\_a\_link:__ if checked it will not send any emails, only present the uploader with a download link once the upload is complete.  This is useful when sending files to mailinglists, newsletters etc.  When ticked the message subject and message text box disappear from the UI.  Under the hood it creates an anonymous recipient with a token for download.  You can see the download count, but not who downloaded it (obviously, as there are no recipients defined).
+	* __hide\_sender\_email:__ If checked it will hide the sender's email address on the download page. The option is only displayed if the __get\_a\_link__ option is checked. This is useful when sending download links to mailing lists, etc., and you do not want your personal email account to be displayed on the download page.
 	* __redirect_url_on_complete:__ When the transfer upload completes, instead of showing a success message, redirect the user to a URL. This interferes with __get\_a\_link__ in that the uploader will not see the link after the upload completes. Additionally, if the uploader is a guest, there is no way straightforward way for the uploader to learn the download link, although this must not be used as a security feature.
-        * __must_be_logged_in_to_download__ (boolean): To download the files the user must log in to the FileSender server. This allows people to send files to other people they know also use the same FileSender server.
-        * __web_notification_when_upload_is_complete__: Added in release 2.32. Options include available, advanced, and default. If you wish to use this feature you should set available=true to allow the user to see the option. Some browsers such as Firefox require the user to explicitly click a link to start the acceptance dialog so being able to see the option (available=true) on the web page is very useful. Using notifications will require the user to accept them for the site. Currently as of release 2.32 a notification can be sent when the upload is complete.
+	* __must_be_logged_in_to_download__ (boolean): To download the files the user must log in to the FileSender server. This allows people to send files to other people they know also use the same FileSender server.
+	* __web_notification_when_upload_is_complete__: Added in release 2.32. Options include available, advanced, and default. If you wish to use this feature you should set available=true to allow the user to see the option. Some browsers such as Firefox require the user to explicitly click a link to start the acceptance dialog so being able to see the option (available=true) on the web page is very useful. Using notifications will require the user to accept them for the site. Currently as of release 2.32 a notification can be sent when the upload is complete.
 
 * __*Configuration example:*__
 
@@ -1406,6 +1853,21 @@ If you want to find out the expiry timer for your SAML Identity Provider install
 * __available:__ since version 2.0
 * __comment:__ 
 
+### disable_directory_upload
+* __description:__ Disables the functionality to upload entire directories from the UI
+* __mandatory:__ no
+* __type:__ bool
+* __default:__ true
+* __available:__ since version 2.0
+* __comment:__ Set this to false to enable the directory upload functionality
+
+### directory_upload_button_enabled]
+* __description:__ Enables a button for directory upload on supported browsers
+* __mandatory:__ no
+* __type:__ bool
+* __default:__ true
+* __available:__ since version 2.6
+* __comment:__ Only on Firefox and Chrome in default templates
 
 ### encryption_enabled
 * __description:__ set to false to disable. If set to true an option to enable file encryption of a transfer becomes available in the web-UI.
@@ -1422,6 +1884,15 @@ If you want to find out the expiry timer for your SAML Identity Provider install
 * __default:__ false
 * __available:__ since version 2.23
 * __comment:__
+
+### encryption_mandatory_with_generated_password
+* __description:__ If set to true then every file uploaded must be encrypted and use a generated password. This enables encryption_mandatory automatically.
+* __mandatory:__ no
+* __type:__ boolean
+* __default:__ false
+* __available:__ since version 2.40
+* __comment:__
+
 
 
 
@@ -1707,7 +2178,21 @@ This is only for old, existing transfers which have no roundtriptoken set.
 * __type:__ boolean
 * __default:__ true
 * __available:__ since version 2.19
-* __comment:__ 
+* __comment:__
+
+
+### fileSystemWritableFileStream_enabled
+* __description:__ Allow the use of the FileSystemWritableFileStream API to perform streaming download of encrypted files on supported browsers.
+* __mandatory:__ no 
+* __recommend_leaving_at_default:__ true
+* __type:__ boolean
+* __default:__ false
+* __available:__ since version 2.41
+* __comment:__
+    This feature is currently only available when you have streamsaver_enabled=true set. This will prefer to use the
+    FileSystemWritableFileStream API when available to stream data to disk. As at mid 2023 Edge and Chrome support
+    this feature, Firefox supports most but not all (so can not be used) and Safari does not support the feature.
+    In the future this may be separated from the streamsaver_enabled option so it can be enabled independently.
 
 ### recipient_reminder_limit
 
@@ -1726,7 +2211,78 @@ This is only for old, existing transfers which have no roundtriptoken set.
     changed independently.
 
 
+### log_authenticated_user_download_by_ensure_user_as_recipient
 
+* __description:__ Log the saml Identifiant for downloads performed by authenticated users
+* __mandatory:__ no
+* __type:__ boolean
+* __default:__ false
+* __available:__ since before version 2.39
+* __comment:__ This option allows a user to see which authenticated users have
+     downloaded their transfers. This option is most effective when
+     "User must login to FileSender to download file" is enabled for a transfer.
+
+     This is mainly useful when the transfer is created with "get a
+     link" and that link is shared by the user with other users
+     outside of the system. If another user logs into the FileSender
+     server and downloads a file from a transfer then the
+     authenticated downloader is logged against each file that they
+     download. This logging is not done when the user has admin
+     privileges.
+     
+     This option will ensure that there is an entry in the recipients
+     table for the transfer for the saml Identifiant (normally email
+     address) of an authenticated user who is downloading a file. This
+     has privacy implications as the person who created a transfer may
+     be able to see the email address of each authenticated user who
+     has downloaded each file. One should be aware of and accept this
+     arrangement before enabling this feature for a FileSender
+     installation.
+
+     Note that if a regular user visits a download link and they are
+     allowed to download because "User must login to FileSender to
+     download file" is not selected then the user can download without
+     log in and thus the exact user is not known for the download log.
+     
+
+
+
+### transfer_automatic_reminder
+
+* __description:__ The number of reminders that a user can send to a recipient
+* __mandatory:__ no
+* __type:__ int, array of int, or false
+* __default:__ false
+* __available:__ since before version 2.40
+* __comment:__ This is used in the cron job to allow notifications to be sent to users
+  who have not downloaded files and the expire time for those files is coming up. The integer
+  is the number of days that remain before the transfer expires. Note that a user will only be notified
+  if they have not already downloaded the file.
+  
+  In the below configurations the first will notify people who have not downloaded a transfer a week from
+  it expiring. The second will result to two potential notifications, one 10 days out and one a week from
+  expiring. Note that if the user receives the first notification and downloads the file they will not receive
+  the notification a week out because they have already downloaded the file.
+  
+* __*Configuration example:*__
+   $config['transfer_automatic_reminder'] = 7;
+   $config['transfer_automatic_reminder'] = array(7,10);
+
+
+
+### transfers_table_show_admin_full_path_to_each_file
+
+* __description:__ In the transfers table show the local path for the data for each file
+* __mandatory:__ no
+* __type:__ bool
+* __default:__ false
+* __available:__ since before version 2.46
+* __comment:__ A debugging option to allow an admin to see where the file content is stored for each
+               file in every transfer. This allows direct inspection of the disk without having to
+               work out the transfer id and uuid for a file in the case that an admin wishes to inspect 
+               the disk. This can be useful when storage_filesystem_per_day_buckets is enabled as there
+               will be subdirectories that are calculated from the timestamp in the uuid which may not
+               be immediately obvious to a human.
 
 
 
@@ -1756,6 +2312,15 @@ This is only for old, existing transfers which have no roundtriptoken set.
 * __available:__ since version 2.0
 * __comment:__ only useful when you enable upload_graph_bulk_display
 
+
+### upload_graph_use_cache_table
+
+* __description:__ Use a cache table to present the upload speed graphs
+* __mandatory:__ no
+* __type:__ boolean
+* __default:__ false
+* __available:__ since version 2.49
+* __comment:__ If you enable this option you will need to schedule scripts/task/update-upload-graph-table.php to execute periodically to update the cache table. This can be useful on very large installations.
 
 
 
@@ -1906,6 +2471,8 @@ This is only for old, existing transfers which have no roundtriptoken set.
 	* __email_guest_created:__ send the guest an email when the guest voucher is created.
 	* __email_guest_created_receipt:__ send the guest invitation owner an email when the guest voucher is created.
 	* __email_guest_expired:__ send the guest an email when the guest voucher is expired.
+	* __guest\_upload\_expire\_is\_guest\_expire:__ [optional] Try to set the default transfer expire time to the guest expire time if it is close enough.
+        * __guest\_upload\_expire\_read\_only:__ [optional] Guest can not change the expire time for a transfer.
 
 * __*Configuration example:*__
 
@@ -2023,14 +2590,17 @@ This is only for old, existing transfers which have no roundtriptoken set.
 
 ### allow_guest_expiry_date_extension
 
-* __description:__ This is an untested matching config option to allow_guest_expiry_date_extension_admin. It is best to reserve this config keyword now to allow future versions to allow some users to extend their guests if desired. Extending guest expire time is only available via the admin page as at release 2.23.
-* __mandatory:__
+* __description:__ Setting this option will allow normal users to extend their guest vouchers. This can be useful for example when a user has sent a guest voucher and receives an out of office reply email. The user might like to return to the guest page and click "extend" to make the the guest voucher valid for a longer period of time to be valid after the guest has returned to the office.
+* __mandatory:__ no
 * __type:__ an array of integers containing possible extensions in days.
-* __default:__ - (= not activated)
-* __available:__ since version 2.23
+* __default:__ 0 (= not activated)
+* __available:__ since version 2.34
 * __1.x name:__
 * __comment:__
 * __Examples:__
+
+        // Allows infinite extensions, the first is by 30 days then 90 days 
+        $config['allow_guest_expiry_date_extension'] = array(30, 90, true); 
 
 
 ### allow_guest_expiry_date_extension_admin
@@ -2104,17 +2674,6 @@ This is only for old, existing transfers which have no roundtriptoken set.
 * __comment:__ Some of the auth_sp methods may use _SESSION or perform other actions that might alter how session_start() will work. If that is the case you can set this configuration to true and session_start() will be called before authentication is performed.
 
 
-
-### session_cookie_path
-
-* __description:__ Explicitly sets the session.cookie.path parameter for the authentication cookies.  You typically need this if you use SimpleSAMLphp for authentication and have multiple FileSender instances using the same SimpleSAMLphp installation.  Shibboleth has its own session identifier mechanism and you probably won't need to change the session_cookie_path when using Shibboleth.
-* __mandatory:__ no
-* __type:__ string
-* __default:__ if(!$session_cookie_path) $session_cookie_path = $site_url_parts['path'];
-* __available:__ since version 2.0
-* __1.x name:__
-* __comment:__ When do you set this?  If you use SimpleSAMLphp for authentication there is one common scenario where you need to set this parameter: the URL space for your FileSender instance and your SimpleSAMLphp instance do not overlap.  This happens when you have multiple FileSender instances (one production, one beta) sharing the same SimpleSAMLphp installation. For example: `http://yourdomain.dom/filesender-beta` and `http://yourdomain.dom/simplesamlphp`.  Because SimpleSAMLphp and FileSender are both written in PHP they use the same mechanism for session identifiers.  They can share session identifiers but only if this is allowed by the session_cookie_path.  When you log on with SimpleSAMLphp a session identifier is created.  If this can not be shared with your FileSender instance you will notice a user can log on, only to be presented with the same logon form again.  A silent failure.  In this scenario you will either need to ensure your SimpleSAMLphp instance is available within the FileSender URL space, or you set the session cookie parameter to for example `http://yourdomain.dom/`.  Another workaround is to use memcache for SimpleSAMLphp's session identifiers but that would mean an extra package on your server.
-
 ### auth_sp_set_idp_as_user_organization
 
 * __description:__ saml_sp_idp (simplesaml), shib: (shib_identity_provider environment variable) takes sp identifier from sp if provided and save it in user preferences as organisation property.
@@ -2147,7 +2706,7 @@ This is only for old, existing transfers which have no roundtriptoken set.
 * __default:__ -
 * __available:__ since version 1.0
 * __1.x name:__ site_simplesamlurl
-* __comment:__ You will usually have something like `http://<your-filesender-server>/simplesaml` here where 'simplesaml' is an alias defined as `Alias /simplesaml /usr/local/filesender/simplesaml/www` in your web server config.
+* __comment:__ You will usually have something like `https://filesender.example.org/simplesaml` here where 'simplesaml' is an alias defined as `Alias /simplesaml /usr/local/simplesaml/www` in your web server config.
 
 ### auth_sp_saml_simplesamlphp_location
 
@@ -2218,6 +2777,17 @@ This is only for old, existing transfers which have no roundtriptoken set.
 * __default:__ 0
 * __available:__ since version 2.16
 * __comment:__ 
+
+
+### auth_warn_session_expired
+
+* __description:__ When turned on the expire time for SAML sessions is sent to the browser so the user can be warned when the session has expired.
+* __mandatory:__ no
+* __type:__ boolean
+* __default:__ false
+* __available:__ since version 2.49
+* __comment:__ Note: enabling this setting will use a cookie X-FileSender-Session-Expires to support the functionality. 
+               The warning does not happen during an upload because the session may expire there and the upload can still complete.
 
 
 
@@ -2521,6 +3091,16 @@ $config['log_facilities'] =
 * __1.x name:__
 * __comment:__ Use this setting to control the privacy footprint of your FileSender service.
 
+### ratelimithistory_lifetime
+
+* __description:__ The ratelimithistory entries are kept in the database for this long. Should be at least a day, default is a month.
+* __mandatory:__ no
+* __type:__ boolean/int (days).  Set to false to disable.
+* __default:__ 31
+* __available:__ since version 2.42
+* __1.x name:__
+* __comment:__ Use this setting to control the privacy footprint of your FileSender service.
+
 ### report_format
 
 * __description:__ A user can ask for an audit report specifying what happened to a transfer when.  This can be done when initiating a transfer by ticking the checkbox or explicitly through MyTransfers (view audit log).  This setting specifies what type of report will be generated.
@@ -2562,6 +3142,29 @@ $config['log_facilities'] =
 * __available:__ since version 2.0
 * __comment:__ Number of days after which collected client logs are automatically deleted.
 
+### client_ip_key
+
+* __description:__ PHP key to use as client identifier
+* __mandatory:__ no
+* __type:__ string
+* __default__: REMOTE_ADDR
+* __available:__ v2.2
+* __comment:__ Client identifier. Usually the default is fine, however when you have reverse proxy setups, you may need to change this to HTTP_CLIENT_IP, HTTP_X_REAL_IP, HTTP_X_FORWARDED_FOR, depending on your setup.
+
+
+### exception_skip_logging
+
+* __description:__ An array of exception class names to ignore during logging
+* __mandatory:__ no
+* __type:__ array of string
+* __default__: 
+* __available:__ v2.48
+* __comment:__ A list of php exception class names to not trigger logging messages. For example:
+	<pre><code>
+      $config['exception_skip_logging'] = array('AuthRemoteSignatureCheckFailedException');
+    </code></pre>
+
+
 
 ### logs_limit_messages_from_same_ip_address
 
@@ -2575,9 +3178,6 @@ $config['log_facilities'] =
         setting with the default of false works ok for people then the option may be removed and the default of not
         limiting logs will be the only option. So in short, you may not ever need to know about or set this option. It
         is here as a fallback if there are issues with it being turned off.
-
-
-
 
 
 ---
@@ -2621,9 +3221,19 @@ Example:
 The array above contains the remote_application name and all the information for that is in an array under the key. 
 In this example, the application `appname` with secret `secret` has admin rights and can access the endpoint `/info` and `/transfer` by get and post. If you want it to access another endpoint it's necessary to put it in `acl` array. Without it the `info` ACL the test example would fail with permission denied.
 
+### auth_remote_user_enabled
+
+* __description:__ Enable API authentication of remote users. Users can authenticate if they have generated an API key in their user profile.
+* __mandatory:__ no
+* __type:__ boolean
+* __default:__ false
+* __available:__ since version 2.0
+* __1.x name:__
+* __comment:__
+
 ### auth_remote_user_autogenerate_secret
 
-* __description:__ <span style="background-color:orange">ask etienne how this works</span>
+* __description:__ Automatically generate the user API key upon login, so they dont have to do it themselves
 * __mandatory:__ no
 * __type:__ boolean
 * __default:__ false
@@ -2733,6 +3343,26 @@ $config['rest_allow_jsonp'] = array(
 
 Changes are saved in config_overrides.json in the config directory.  The config.php file is NOT modified.  This keeps overrides separated from the site config.  is_string, is_numeric (standard php validators) or a function of your own which returns a boolean indicating if the value is good or not.
 
+	
+### auth_config_regex_files
+* __description:__ <span style="background-color:orange">In version 2.0 you can override settings based authenticated client attritbutes using regex</span>. With the auth_config_regex_files directive you specify an array of attributes + regex and resulting filename to load if the regex matches for the attribute value.
+* __mandatory:__ no
+* __type:__ array of key-value pairs
+* __default:__ 0, null, empty string: no overrides loaded.
+* __available:__ since version 2.0
+* __1.x name:__
+* __comment:__ example:
+	<pre><code>
+	$config['auth_config_regex_files'] = [
+		'uid' => [
+			'@mydomain.com$' => 'mydomainfile',
+			'@myotherdomain.com$|@yetanotherdomain.com$' => 'myotherdomainfile',
+		];
+	</code></pre>
+
+	In this examples, if the uid ends with "@mydomain.com", the config file config-mydomainfile.php in the config subdir will be loaded.
+	If the uid ends with "@myotherdomain.com" or "@yetanotherdomain.com", the config file config-myotherdomainfile.php in the config subdir will be loaded.
+	
 ###
 
 ---

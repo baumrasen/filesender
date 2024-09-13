@@ -45,7 +45,9 @@ class Browser
     protected $isChrome  = false;
     protected $isFirefox = false;
     protected $isSafari  = false;
+    protected $isEdge  = false;
     protected $allowStreamSaver  = false;
+    protected $allowFileSystemWritableFileStream = false;
     
     public function __construct()
     {
@@ -75,6 +77,11 @@ class Browser
             }
             
         }
+
+        if( Config::get('filesystemwritablefilestream_enabled')) {
+            $this->allowFileSystemWritableFileStream = true;
+        }
+        
     }
     static function instance()
     {
@@ -86,7 +93,7 @@ class Browser
     public function __get($property)
     {
         if (in_array($property, array(
-            'isChrome','isFirefox','allowStreamSaver',
+            'isChrome','isFirefox','allowStreamSaver','allowFileSystemWritableFileStream'
         ))) {
             return $this->$property;
         }

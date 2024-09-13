@@ -65,10 +65,6 @@ class Lang
      */
     private $translation = '';
     
-    /**
-     * Does the translation allows replacements
-     */
-    private $allow_replace = true;
     
     /**
      * Get available languages
@@ -240,8 +236,10 @@ class Lang
                 }
             }
             
-            // Absolute default
-            $stack[] = 'en';
+            // Absolute default, but avoid adding "en" if already set as default
+            if (!in_array('en', $stack)) {
+                $stack[] = 'en';
+            }
             
             // Add to cached stack (most significant first)
             $main = array_shift($stack);
@@ -437,6 +435,8 @@ class Lang
      */
     public static function translate($id)
     {
+        $tr = null;
+        
         // Load dictionaries if not already done
         self::loadDictionaries();
         
@@ -457,15 +457,28 @@ class Lang
         } else {
             $stack = self::getCodeStack();
             Logger::warn('No translation found for '.$id.' in '.$stack['main'].' language');
-            
-            if (array_key_exists($id, self::$translations['fallback'])) {
-                Logger::warn('No fallback translation found for '.$id.' in '.implode(', ', $stack['fallback']).' languages');
-            
-                $tr = self::$translations['fallback'][$id];
-                $src = 'fallback';
-            } else {
-                return new Translation('{'.$id.'}', false);
-            }
+
+            $fallbackid = 'unknown';
+            // fallback is an array of lang codes, so loop through those
+            foreach (self::$translations['fallback'] as $fallback_lang) {
+                if (array_key_exists($id, $fallback_lang)) {
+                    $tr = $fallback_lang[$id];
+                    $src = 'fallback';
+                    $fallbackid = $id;
+                    // we stop on first match
+                    continue;
+                }       
+            }           
+
+            if (empty($src) && !empty(self::$translations['fallback'])) {
+                Logger::warn('No fallback translation found for '.$id.' in '.$fallbackid.' languages');
+                return new Translation('{'.$id.'}', false); 
+            }       
+        }
+
+        if( !$tr ) {
+            Logger::error("translate() can not find translation for id $id");
+            return new Translation($id);
         }
         
         // File based ? Then loads it up and cache contents
@@ -523,7 +536,7 @@ class Lang
     public static function trWithConfigOverride($id)
     {
         $v = Config::get('tr_' . $id);
-        if( strlen($v)) {
+        if( $v && strlen($v)) {
             return new Translation($v);
         }
         return self::tr($id);
@@ -706,6 +719,11 @@ class Translation
      * Raw mode
      */
     private $raw = false;
+
+    /**
+     * Does the translation allows replacements
+     */
+    private $allow_replace = true;
     
     /**
      * Constructor
