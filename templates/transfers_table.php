@@ -278,8 +278,9 @@ EOF;
                         makeAction("details", "", "{tr:details}", "fa-info" );
                         
                         ?>
-                    </div>
-                    <div id="marg3.2"  class="actionsblock">
+    
+                        <!-- modification for my own website - all symbols in one line -->
+
                         <?php
                         
                         makeAction("remind", "", "{tr:send_reminder}", "fa-repeat" );
