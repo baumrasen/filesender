@@ -5,7 +5,7 @@
     align-items: center;
     text-decoration: none;
     font-size: 0.8rem;
-    border-radius: var(--fs-spacing-3x);
+    /* border-radius: var(--fs-spacing-3x); */
     color: var(--fs-text-color);
     background: transparent;
     border: none;
@@ -48,7 +48,7 @@
     justify-content: center;
     height: var(--fs-spacing-5x);
     width: var(--fs-spacing-5x);
-    border-radius: 100%;
+    /* border-radius: 100%; */
     color: var(--fs-accent) !important;
     background: var(--fs-hightlight-bg) !important;
 }

@@ -11,7 +11,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid var(--fs-accent);
-  border-radius: var(--fs-spacing-4x);
+  /* border-radius: var(--fs-spacing-4x); */
   height: var(--fs-spacing-4x);
   padding: 0 var(--fs-spacing-2x);
   text-align: center;
@@ -31,7 +31,7 @@
 }
 
 .fs-badge-list .fs-button {
-  border-radius: var(--fs-spacing-4x);
+  /* border-radius: var(--fs-spacing-4x); */
   height: var(--fs-spacing-4x);
   padding: 0 var(--fs-spacing-2x);
   margin-right: var(--fs-spacing-base);
@@ -52,7 +52,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid var(--fs-accent);
-  border-radius: var(--fs-spacing-4x);
+  /* border-radius: var(--fs-spacing-4x); */
   height: var(--fs-spacing-5x);
   padding: 0 var(--fs-spacing-2x);
   text-align: center;
@@ -76,7 +76,7 @@
 }
 
 .fs-badge-buttons-listx .fs-button {
-  border-radius: var(--fs-spacing-4x);
+  /* border-radius: var(--fs-spacing-4x); */
   height: var(--fs-spacing-4x);
   padding: 0 var(--fs-spacing-2x);
   margin-right: var(--fs-spacing-base);

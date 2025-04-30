@@ -4,7 +4,7 @@
   align-items: center;
   background: var(--fs-hightlight-bg);
   border: 1px solid var(--fs-accent);
-  border-radius: var(--fs-spacing-4x);
+  /* border-radius: var(--fs-spacing-4x); */
   font-weight: 700;
   margin-top: var(--fs-spacing-2x);
 }

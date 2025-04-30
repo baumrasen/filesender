@@ -20,7 +20,7 @@
   min-height: var(--fs-spacing-6x);
   padding: 0 var(--fs-spacing-5x) 0 var(--fs-spacing-3x);
   margin-left: var(--fs-spacing-3x);
-  border-radius: var(--fs-spacing-base);
+  /* border-radius: var(--fs-spacing-base); */
   -moz-appearance: none;
   -webkit-appearance: none;
   /* Firefox */
