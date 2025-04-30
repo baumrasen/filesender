@@ -1,4 +1,28 @@
 :root {
+    /* MY OWN COLORS */
+
+    --fs-ci-primary: rgb(232 37 131);             /* ci-magenta */
+    --fs-ci-accent: rgb(225 72 140);              /* ci-magenta-accent */
+    --fs-ci-highlight-bg: rgb(142 142 148);       /* ci-gray-accent */
+    --fs-ci-text-default: rgb(98 105 116);        /* text-font-default */
+
+
+    --fs-ci-dark: rgb(83 91 100);                 /* .bg-ci-dark */
+    --fs-ci-dark-accent: rgb(106 114 128);        /* .bg-ci-dark-accent */
+    --fs-ci-dark\/50: #535b6480;                  /* .bg-ci-dark\/50 */
+    --fs-ci-dark\/80: #535b64cc;                  /* .bg-ci-dark\/80 */
+
+    --fs-ci-gray: rgb(209 213 215);               /* .bg-ci-gray */
+    --fs-ci-gray-accent: rgb(142 142 148);        /* .bg-ci-gray-accent */
+    --fs-ci-gray\/20: #d1d5d733;                  /* .bg-ci-gray\/20 */
+    --fs-ci-gray\/60: #d1d5d799;                  /* .bg-ci-gray\/60 */
+
+    --fs-ci-magenta: rgb(232 37 131);             /* .bg-ci-magenta  */
+    --fs-ci-magenta-accent: rgb(225 72 140);      /* .bg-ci-magenta-accent */
+
+    --fs-ci-ocher: rgb(216 207 186);              /* .bg-ci-ocher */
+    --fs-ci-ocher-accent: rgb(227 216 195);       /* .bg-ci-ocher-accent */
+
     /* COLORS */
 
     --fs-black: #000000;
@@ -16,39 +40,39 @@
     --fs-blue-300: #5992ed;
     --fs-blue: #1351b4;
 
-    --fs-bg-color: #000000;
-    --fs-bg-color-secondary: #121212;
-    --fs-bg-color-tertiary: #121212;
-    --fs-bg-color-quarternary: #121212;
-    --fs-bg-color-quinary: #121212;
-    --fs-border: var(--fs-light);
+    --fs-bg-color: var(--fs-gray-50);
+    --fs-bg-color-secondary: var(--fs-white);
+    --fs-bg-color-tertiary: var(--fs-gray-100);
+    --fs-bg-color-quarternary: var(--fs-gray-200);
+    --fs-bg-color-quinary: var(--fs-gray-300);
+    --fs-border: var(--fs-gray-200);
 
-    --fs-text-color: #FBFAFE;
+    --fs-text-color: var(--fs-ci-dark);
 
-    --fs-hightlight-bg: var(--fs-bg-color-secondary);
-    --fs-hightlight-bg-alternative: #bb86fc;
-    --fs-hightlight-bg-secondary: #bb86fc;
+    --fs-hightlight-bg: var(--fs-ci-gray);
+    --fs-hightlight-bg-alternative:  var(--fs-ci-ocher);
+    --fs-hightlight-bg-secondary:  var(--fs-ci-ocher-accent);
 
-    --fs-accent: #3700b3;
+    --fs-accent: var(--fs-ci-magenta);
 
-    --fs-primary: #bb86fc;
+    --fs-primary: var(--fs-ci-magenta);
 
     --fs-light: var(--fs-white);
-    --fs-bg-light: var(--fs-bg-color);
+    --fs-bg-light: var(--fs-bg-color-secondary);
 
-    --fs-hover: #bb86fc;
+    --fs-hover: #DCE3F2;
 
-    --fs-btn: #3700b3;
-    --fs-btn-hover: #3700b3;
-    --fs-btn-active: #C08FFB;
+    --fs-btn:  var(--fs-ci-magenta);
+    --fs-btn-hover: var(--fs-ci-magenta-accent);
+    --fs-btn-active: var(--fs-ci-ocher);
 
-    --fs-success: #018786;
-    --fs-success-hover: #02ADAD;
-    --fs-success-active: #47E6E6;
+    --fs-success: #138821;
+    --fs-success-hover: #489B49;
+    --fs-success-active: #8BBF89;
 
-    --fs-info: #155BCB;
-    --fs-info-hover: #4177D3;
-    --fs-info-active: #84A5E4;
+    --fs-info: var(--fs-ci-magenta);
+    --fs-info-hover: var(--fs-ci-magenta-accent);
+    --fs-info-active: var(--fs-ci-ocher);
 
     --fs-warning: #FFCD05;
     --fs-warning-hover: #DFB41E;
@@ -60,7 +84,7 @@
 
     /* SPACING */
 
-    -fs-spacing-base: 8px;
+    --fs-spacing-base: 8px;
     --fs-spacing-half: calc(var(--fs-spacing-base) / 2);
     --fs-spacing-quarter: calc(var(--fs-spacing-base) / 4);
 
@@ -94,8 +118,4 @@
     --fs-spacing-28x: calc(var(--fs-spacing-base) * 28);
     --fs-spacing-29x: calc(var(--fs-spacing-base) * 29);
     --fs-spacing-30x: calc(var(--fs-spacing-base) * 30);
-}
-
-img {
-    filter: invert(1);
 }

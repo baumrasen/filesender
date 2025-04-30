@@ -1,4 +1,28 @@
 :root {
+    /* MY OWN COLORS */
+
+    --fs-ci-primary: rgb(232 37 131);             /* ci-magenta */
+    --fs-ci-accent: rgb(225 72 140);              /* ci-magenta-accent */
+    --fs-ci-highlight-bg: rgb(142 142 148);       /* ci-gray-accent */
+    --fs-ci-text-default: rgb(98 105 116);        /* text-font-default */
+
+
+    --fs-ci-dark: rgb(83 91 100);                 /* .bg-ci-dark */
+    --fs-ci-dark-accent: rgb(106 114 128);        /* .bg-ci-dark-accent */
+    --fs-ci-dark\/50: #535b6480;                  /* .bg-ci-dark\/50 */
+    --fs-ci-dark\/80: #535b64cc;                  /* .bg-ci-dark\/80 */
+
+    --fs-ci-gray: rgb(209 213 215);               /* .bg-ci-gray */
+    --fs-ci-gray-accent: rgb(142 142 148);        /* .bg-ci-gray-accent */
+    --fs-ci-gray\/20: #d1d5d733;                  /* .bg-ci-gray\/20 */
+    --fs-ci-gray\/60: #d1d5d799;                  /* .bg-ci-gray\/60 */
+
+    --fs-ci-magenta: rgb(232 37 131);             /* .bg-ci-magenta  */
+    --fs-ci-magenta-accent: rgb(225 72 140);      /* .bg-ci-magenta-accent */
+
+    --fs-ci-ocher: rgb(216 207 186);              /* .bg-ci-ocher */
+    --fs-ci-ocher-accent: rgb(227 216 195);       /* .bg-ci-ocher-accent */
+
     /* COLORS */
 
     --fs-black: #000000;
@@ -23,32 +47,32 @@
     --fs-bg-color-quinary: var(--fs-gray-300);
     --fs-border: var(--fs-gray-200);
 
-    --fs-text-color: var(--fs-gray-900);
+    --fs-text-color: var(--fs-ci-dark);
 
-    --fs-hightlight-bg: var(--fs-blue-100);
-    --fs-hightlight-bg-alternative:  var(--fs-blue-100);
-    --fs-hightlight-bg-secondary:  var(--fs-blue-200);
+    --fs-hightlight-bg: var(--fs-ci-gray);
+    --fs-hightlight-bg-alternative:  var(--fs-ci-ocher);
+    --fs-hightlight-bg-secondary:  var(--fs-ci-ocher-accent);
 
-    --fs-accent: var(--fs-blue);
+    --fs-accent: var(--fs-ci-magenta);
 
-    --fs-primary: var(--fs-blue);
+    --fs-primary: var(--fs-ci-magenta);
 
     --fs-light: var(--fs-white);
     --fs-bg-light: var(--fs-bg-color-secondary);
 
     --fs-hover: #DCE3F2;
 
-    --fs-btn:  var(--fs-blue);
-    --fs-btn-hover: #3E6DC1;
-    --fs-btn-active: #81A0D6;
+    --fs-btn:  var(--fs-ci-magenta);
+    --fs-btn-hover: var(--fs-ci-magenta-accent);
+    --fs-btn-active: var(--fs-ci-ocher);
 
     --fs-success: #138821;
     --fs-success-hover: #489B49;
     --fs-success-active: #8BBF89;
 
-    --fs-info: #155BCB;
-    --fs-info-hover: #4177D3;
-    --fs-info-active: #84A5E4;
+    --fs-info: var(--fs-ci-magenta);
+    --fs-info-hover: var(--fs-ci-magenta-accent);
+    --fs-info-active: var(--fs-ci-ocher);
 
     --fs-warning: #FFCD05;
     --fs-warning-hover: #DFB41E;
