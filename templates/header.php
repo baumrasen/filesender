@@ -36,4 +36,4 @@ $headerclass = "header";
         <meta name="robots" content="noindex, nofollow" />
         <meta name="auth" content="noindex, nofollow" />
     </head>
-    <body data-security-token="<?php echo Utilities::getSecurityToken() ?>" data-auth-type="<?php echo Auth::type() ?>">
+    <body class="bg-page-bg dark:bg-black h-full text-lg text-font-default font-light overflow-x-hidden max-md:pt-[82px]" data-security-token="<?php echo Utilities::getSecurityToken() ?>" data-auth-type="<?php echo Auth::type() ?>">
