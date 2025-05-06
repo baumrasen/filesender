@@ -1,4 +1,4 @@
-<div class="core">
+<div class="content-section scheme-bg-white dark:bg-gray-950 relative narrow lg:container lg:mx-auto lg:narrow:max-w-[1100px] relative z-10 px-4 md:px-8 py-16 md:py-32">
     {tr:site_splash}
     
     <div class="logon">
